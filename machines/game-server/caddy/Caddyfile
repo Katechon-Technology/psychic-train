@@ -1,0 +1,7 @@
+{$FRONTEND_DOMAIN} {
+    reverse_proxy frontend:3000
+}
+
+{$BROKER_DOMAIN} {
+    reverse_proxy broker:8080
+}

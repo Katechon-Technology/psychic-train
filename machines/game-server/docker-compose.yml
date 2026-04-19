@@ -1,0 +1,80 @@
+# Production game-server stack. No NixOS — host provisioning is external.
+#
+# Assumes /opt/psychic-train/plugins/ exists on the host and is synced by CI.
+# Pre-built images come from a registry or are built by machines/game-server/deploy.sh.
+
+name: psychic_train
+
+networks:
+  default:
+    name: psychic_train_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  psychic_train_minecraft_server:
+  caddy_data:
+  caddy_config:
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: psychic_train
+      POSTGRES_USER: psychic_train
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  broker:
+    image: ${IMAGE_REGISTRY:-}psychic-train-broker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on: [postgres, redis]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: psychic_train
+      POSTGRES_USER: psychic_train
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      PLUGINS_DIR: /plugins
+      BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY}
+      BROKER_URL: ${BROKER_URL}
+      DOCKER_NETWORK: psychic_train_net
+      STREAM_BASE_PORT: "3003"
+      STREAM_PUBLIC_HOST: ${STREAM_PUBLIC_HOST}
+      STREAM_SCHEME: ${STREAM_SCHEME:-https}
+      STREAM_DOMAIN: ${STREAM_DOMAIN}
+      STREAM_AGENT_URL: ${STREAM_AGENT_URL}
+      STREAM_AGENT_KEY: ${STREAM_AGENT_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
+      RCON_PASSWORD: ${RCON_PASSWORD}
+    volumes:
+      - /opt/psychic-train/plugins:/plugins:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    image: ${IMAGE_REGISTRY:-}psychic-train-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on: [broker]
+    environment:
+      BROKER_URL: http://broker:8080
+      BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY}

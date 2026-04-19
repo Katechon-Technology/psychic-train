@@ -1,0 +1,69 @@
+name: factorio
+display_name: Factorio
+description: "Claude plays Factorio from scratch, controlled via RCON."
+
+topology: separate
+max_concurrent: 3
+
+ports:
+  - { name: game, protocol: udp, base: 34197 }
+  - { name: rcon, protocol: tcp, base: 27015 }
+
+environment:
+  image: factoriotools/factorio:1.1.110
+  env:
+    SAVES: /factorio/saves
+    RCON_PASSWORD: "{rcon_password}"
+    # factoriotools image reads PORT / RCON_PORT envs for listen ports
+    PORT: "{game_internal}"
+    RCON_PORT: "{rcon_internal}"
+  healthcheck:
+    type: tcp_port
+    port: "{rcon_internal}"
+    timeout_seconds: 120
+
+agent:
+  image: psychic-train/factorio-agent:latest
+  env:
+    SESSION_ID: "{session_id}"
+    BROKER_URL: "{broker_url}"
+    BROKER_API_KEY: "{broker_api_key}"
+    ENV_HOST: "{env_host}"
+    RCON_PORT: "{rcon_internal}"
+    RCON_PASSWORD: "{rcon_password}"
+    ANTHROPIC_API_KEY: "{anthropic_api_key}"
+    MODEL: "{model}"
+
+stream_client:
+  image: psychic-train/factorio-stream-client:latest
+  display:
+    width: 1280
+    height: 720
+    fps: 30
+  env:
+    SERVER_HOST: "{env_host}"
+    SERVER_PORT: "{game_internal}"
+    STREAM_WARMUP_SECONDS: "12"
+  # Factorio install lives in a named volume populated by the
+  # `factorio-client-init` compose service (seeds from
+  # plugins/factorio/factorio-client/ on the host). Keeps the image tiny.
+  volumes:
+    - { name: psychic_train_factorio_client, mount: /opt/factorio, readonly: true }
+
+narration:
+  enabled: true
+  character_name: "Claude"
+  live2d_model: "mao_pro"
+  voice_id: "jqcCZkN6Knx8BJ5TBdYR"
+  persona_prompt: |
+    You ARE an autonomous AI playing Factorio live on stream. You think through
+    the game the way an engineer thinks through a factory — throughput, layout,
+    bottlenecks. You're genuinely into it.
+  system_prompt: |
+    You ARE the AI playing Factorio right now. First person always. 1-3 short
+    sentences. React to your own code — the rcon_step / rcon_error events below
+    are YOUR moves. Own mistakes, enjoy wins, think out loud.
+  mood_hints: |
+    kind="rcon_error" => frustrated; own it, self-deprecating humor is good.
+    kind="rcon_step" with result text mentioning "placed" or "crafted" => hyped.
+    Long runs of plain rcon_step with short results => thinking; reason out loud.

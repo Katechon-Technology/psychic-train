@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pip-packages/
+
+# Build outputs
+.next/
+dist/
+build/
+*.egg-info/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Secrets
+*.pem
+*.key
+credentials.json
+
+# Plugin proprietary / generated / large files — plugins add finer-grained rules
+# in their own .gitignore files.
+# Factorio client binary: keep the directory tracked (README acts as .gitkeep)
+# so the stream-client Dockerfile COPY works; ignore the actual binary contents.
+plugins/factorio/factorio-client/*
+!plugins/factorio/factorio-client/README.md
+plugins/factorio/factorio-data/
+plugins/minecraft/server/fabric-server-mc.*.jar
+plugins/minecraft/server/libraries/
+plugins/minecraft/server/versions/
+plugins/minecraft/server/world/
+plugins/minecraft/server/world_*/
+plugins/minecraft/server/logs/
+plugins/minecraft/server/.fabric/
+plugins/minecraft/server/usercache.json
+plugins/minecraft/server/node_modules/
+
+# Local dev data volumes
+dev/postgres_data/
+dev/redis_data/
+
+# Backups
+backups/

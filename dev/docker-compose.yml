@@ -1,0 +1,196 @@
+# Dev stack for psychic-train.
+#
+# Runs long-lived services (postgres, redis, broker, frontend) and builds all
+# on-demand images (stream-client-base + per-plugin agent/env/stream-client) so
+# the broker can spawn them via `docker run`. Tear-down details and gotchas:
+#
+#   docker compose -f dev/docker-compose.yml down -v
+#   docker ps --filter name=env- --filter name=agent- --filter name=stream-client- -q \
+#     | xargs -r docker rm -f     # reap anything the broker spawned outside compose
+
+name: psychic_train
+
+networks:
+  default:
+    name: psychic_train_net
+
+volumes:
+  postgres_data:
+  redis_data:
+  psychic_train_minecraft_server:   # populated by minecraft-server-init below
+  psychic_train_factorio_client:    # populated by factorio-client-init below
+
+services:
+  # ---------------- long-lived services ----------------
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: psychic_train
+      POSTGRES_USER: psychic_train
+      POSTGRES_PASSWORD: psychic_train_secret_123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "psychic_train"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+
+  broker:
+    build:
+      context: ../packages/broker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: psychic_train
+      POSTGRES_USER: psychic_train
+      POSTGRES_PASSWORD: psychic_train_secret_123
+      REDIS_HOST: redis
+      PLUGINS_DIR: /plugins
+      BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY:-dev}
+      BROKER_URL: http://broker:8080
+      DOCKER_NETWORK: psychic_train_net
+      STREAM_BASE_PORT: "3003"
+      STREAM_PUBLIC_HOST: localhost
+      STREAM_SCHEME: http
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
+      RCON_PASSWORD: ${RCON_PASSWORD:-psychic_train_rcon}
+      # VTuber overlay
+      VTUBER_OVERLAY_IMAGE: psychic-train/vtuber-overlay:latest
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
+      TWITCH_STREAM_KEY: ${TWITCH_STREAM_KEY:-}
+      KICK_STREAM_KEY: ${KICK_STREAM_KEY:-}
+    volumes:
+      - ../plugins:/plugins:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+      # Reserve a range for stream-client containers the broker spawns with
+      # `-p STREAM_BASE_PORT+slot:3000`. Docker Desktop handles per-container
+      # port exposure on spawn, so nothing to pre-publish here.
+
+  frontend:
+    build:
+      context: ../packages/frontend
+    depends_on:
+      - broker
+    environment:
+      BROKER_URL: http://broker:8080
+      BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY:-dev}
+    ports:
+      - "3000:3000"
+
+  # ---------------- build-only images (spawned on demand by broker) ----------------
+
+  stream-client-base:
+    build:
+      context: ../packages/stream-client-base
+    image: psychic-train/stream-client-base:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  vtuber-overlay:
+    # Build context = katechon parent so the Dockerfile can COPY the mao_pro model
+    # from claudetorio/packages/vtuber-stream-client/vendor/... without duplicating.
+    build:
+      context: ../..
+      dockerfile: psychic-train/packages/vtuber-overlay/Dockerfile
+    image: psychic-train/vtuber-overlay:latest
+    depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  factorio-agent:
+    build:
+      context: ../plugins/factorio/agent
+    image: psychic-train/factorio-agent:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  factorio-stream-client:
+    build:
+      context: ../plugins/factorio/stream-client
+    image: psychic-train/factorio-stream-client:latest
+    depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  playwright-browser-agent:
+    build:
+      context: ../plugins/playwright-browser/agent
+    image: psychic-train/playwright-browser-agent:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  playwright-browser-stream-client:
+    # Context is the katechon parent so we can COPY both the upstream
+    # `playwright-browser/` source and this plugin's `launch.sh`.
+    build:
+      context: ../..
+      dockerfile: psychic-train/plugins/playwright-browser/stream-client/Dockerfile
+    image: psychic-train/playwright-browser-stream-client:latest
+    depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  minecraft-env:
+    build:
+      context: ../plugins/minecraft/environment
+    image: psychic-train/minecraft-env:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  minecraft-agent:
+    build:
+      context: ../plugins/minecraft/agent
+    image: psychic-train/minecraft-agent:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  minecraft-stream-client:
+    build:
+      context: ../plugins/minecraft/stream-client
+    image: psychic-train/minecraft-stream-client:latest
+    depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  # ---------------- one-shot volume seeders ----------------
+
+  minecraft-server-init:
+    # Copies plugins/minecraft/server/ into the named volume the minecraft-env
+    # container mounts. Modeled after claudetorio's factorio-client-init.
+    # Run with: docker compose run --rm minecraft-server-init
+    image: alpine:3.20
+    profiles: ["init"]
+    volumes:
+      - ../plugins/minecraft/server:/src:ro
+      - psychic_train_minecraft_server:/dst
+    command: >
+      sh -c "cp -a /src/. /dst/ && echo 'minecraft-server volume seeded'"
+
+  factorio-client-init:
+    # Copies plugins/factorio/factorio-client/ into the named volume that the
+    # factorio stream-client mounts at /opt/factorio at spawn time. Keeps the
+    # Factorio install out of the image so rebuilds are fast and the image is
+    # tiny. Run with: docker compose run --rm factorio-client-init
+    image: alpine:3.20
+    profiles: ["init"]
+    volumes:
+      - ../plugins/factorio/factorio-client:/src:ro
+      - psychic_train_factorio_client:/dst
+    command: >
+      sh -c "cp -a /src/. /dst/ 2>/dev/null; echo 'factorio-client volume seeded ('$(du -sh /dst 2>/dev/null | cut -f1)')'"

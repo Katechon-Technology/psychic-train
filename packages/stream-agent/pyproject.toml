@@ -1,0 +1,10 @@
+[project]
+name = "psychic-train-stream-agent"
+version = "0.1.0"
+description = "Spawns stream-client containers on the stream server"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+]

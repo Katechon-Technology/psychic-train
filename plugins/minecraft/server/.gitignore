@@ -1,0 +1,13 @@
+# See ../README.md for what to populate here.
+# Gitignore all the large / generated / proprietary bits; commit text configs only.
+fabric-server-mc.*.jar
+libraries/
+versions/
+world/
+world_*/
+logs/
+*.log
+.fabric/
+usercache.json
+node_modules/
+*.mp4

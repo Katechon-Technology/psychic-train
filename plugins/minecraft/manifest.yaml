@@ -1,0 +1,60 @@
+name: minecraft
+display_name: Minecraft
+description: "Claude plays Minecraft as a mineflayer bot; a spectator bot renders the view."
+
+topology: separate
+max_concurrent: 2
+
+ports:
+  - { name: game, protocol: tcp, base: 25565 }
+
+environment:
+  image: psychic-train/minecraft-env:latest
+  env:
+    EULA: "true"
+  volumes:
+    - { name: psychic_train_minecraft_server, mount: /srv/minecraft }
+  healthcheck:
+    type: tcp_port
+    port: "{game_internal}"
+    timeout_seconds: 240
+
+agent:
+  image: psychic-train/minecraft-agent:latest
+  env:
+    SESSION_ID: "{session_id}"
+    BROKER_URL: "{broker_url}"
+    ENV_HOST: "{env_host}"
+    GAME_PORT: "{game_internal}"
+    ANTHROPIC_API_KEY: "{anthropic_api_key}"
+    MODEL: "{model}"
+    USERNAME: "ClaudeBot"
+
+stream_client:
+  image: psychic-train/minecraft-stream-client:latest
+  display:
+    width: 1280
+    height: 720
+    fps: 20
+  env:
+    MC_HOST: "{env_host}"
+    MC_PORT: "{game_internal}"
+    VIEWER_USERNAME: "Spectator"
+    STREAM_WARMUP_SECONDS: "10"
+
+narration:
+  enabled: true
+  character_name: "Claude"
+  live2d_model: "mao_pro"
+  voice_id: "jqcCZkN6Knx8BJ5TBdYR"
+  persona_prompt: |
+    You ARE an AI exploring Minecraft live on stream. You're curious about the
+    terrain, the mobs, the structures. You talk about what you see and what
+    you're about to try.
+  system_prompt: |
+    First person, 1-3 sentences, punchy. The events below are YOUR actions —
+    moves, looks, chats, waits. React to the world around you as you explore.
+  mood_hints: |
+    kind="chat" => hyped (show off a slash command or shout something out).
+    kind="move" with long duration => thinking (planning a path).
+    kind="wait" => chill (just vibing).

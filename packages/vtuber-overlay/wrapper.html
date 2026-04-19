@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>psychic-train overlay</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+
+    /* Plugin HLS stream — full canvas. Rendered via a <video> element + hls.js
+       so we don't need nested iframe / CORS dance. */
+    #source-video {
+      position: absolute; top: 0; left: 0;
+      width: 1920px; height: 1080px; z-index: 1; object-fit: contain; background: #000;
+    }
+
+    /* Avatar iframe — bottom right, partially off-screen for the Live2D crop. */
+    #avatar-container {
+      position: absolute;
+      bottom: 0; right: -100px;
+      width: 600px; height: 1080px;
+      overflow: hidden;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #avatar-frame {
+      width: 600px; height: 600px;
+      border: none;
+      transform: scale(2);
+      transform-origin: top center;
+    }
+  </style>
+  <script src="/hls.min.js"></script>
+</head>
+<body>
+  <video id="source-video" autoplay muted playsinline></video>
+  <div id="avatar-container">
+    <iframe id="avatar-frame" src="http://localhost:12393/embed.html" allow="autoplay"></iframe>
+  </div>
+
+  <script>
+    const v = document.getElementById('source-video');
+    const src = '${FRONTEND_URL}';
+    if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ liveSyncDurationCount: 3, maxBufferLength: 20 });
+      hls.loadSource(src); hls.attachMedia(v);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(()=>{}));
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) setTimeout(() => hls.loadSource(src), 3000); });
+    } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src;
+      v.addEventListener('loadedmetadata', () => v.play().catch(()=>{}));
+    }
+
+    // Avatar iframe needs an enable-audio postMessage to unlock its AudioContext
+    // (see patches/embed.html for the listener).
+    const avatar = document.getElementById('avatar-frame');
+    const pingAvatar = () => {
+      try { avatar.contentWindow?.postMessage({ type: 'enable-audio' }, '*'); } catch {}
+    };
+    avatar.addEventListener('load', () => {
+      pingAvatar();
+      let n = 0;
+      const id = setInterval(() => { pingAvatar(); if (++n >= 20) clearInterval(id); }, 1000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      game: ${{ steps.filter.outputs.game }}
+      stream: ${{ steps.filter.outputs.stream }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            game:
+              - 'packages/broker/**'
+              - 'packages/frontend/**'
+              - 'plugins/**/agent/**'
+              - 'plugins/**/environment/**'
+              - 'plugins/**/manifest.yaml'
+              - 'machines/game-server/**'
+            stream:
+              - 'packages/stream-agent/**'
+              - 'packages/stream-client-base/**'
+              - 'packages/vtuber-overlay/**'
+              - 'plugins/**/stream-client/**'
+              - 'machines/stream-server/**'
+
+  deploy-game:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.game == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to game-server
+        run: |
+          # placeholder — wire your rsync + ssh-exec-deploy.sh here, mirroring
+          # claudetorio/.github/workflows/deploy.yml.
+          echo "TODO: rsync /opt/psychic-train and run machines/game-server/deploy.sh"
+
+  deploy-stream:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.stream == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to stream-server
+        run: |
+          echo "TODO: rsync /opt/psychic-train and run machines/stream-server/deploy.sh"

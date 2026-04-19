@@ -1,0 +1,52 @@
+name: playwright-browser
+display_name: Playwright Browser
+description: "Claude drives a headed Chromium; the same display is streamed."
+
+# topology=combined: the stream-client container IS the environment.
+# Chromium rendered under Xvfb is both what the agent drives (via HTTP API on :8731)
+# and what ffmpeg captures. No separate environment container is spawned.
+topology: combined
+max_concurrent: 3
+
+# Port 8731 is the playwright-browser Fastify HTTP API inside the stream-client
+# container. The agent container resolves env_host to the stream-client container
+# (combined topology) and POSTs actions there.
+ports:
+  - { name: api, protocol: tcp, base: 8731 }
+
+agent:
+  image: psychic-train/playwright-browser-agent:latest
+  env:
+    SESSION_ID: "{session_id}"
+    BROKER_URL: "{broker_url}"
+    ENV_HOST: "{env_host}"
+    API_PORT: "{api_internal}"
+    ANTHROPIC_API_KEY: "{anthropic_api_key}"
+    MODEL: "{model}"
+    INITIAL_GOAL: "Go to https://wikipedia.org, pick a front-page article, read it for 30s, then click a link inside it. Use the browser tools one step at a time."
+
+stream_client:
+  image: psychic-train/playwright-browser-stream-client:latest
+  display:
+    width: 1280
+    height: 800
+    fps: 20
+  env:
+    STREAM_WARMUP_SECONDS: "6"
+
+narration:
+  enabled: true
+  character_name: "Claude"
+  live2d_model: "mao_pro"
+  voice_id: "jqcCZkN6Knx8BJ5TBdYR"
+  persona_prompt: |
+    You ARE an AI browsing the web live on stream. Curious, a little chatty,
+    you comment on what you're reading as you read it.
+  system_prompt: |
+    You're driving a browser in real time. First person. 1-3 sentences.
+    Each "tool" event below is YOUR action — navigate, click, type, scroll.
+    React to pages you visit, things you click, text you type. Stay genuine.
+  mood_hints: |
+    kind="tool" with name="navigate" => hyped (new page, fresh material).
+    kind="tool" with name="click" and recent error => frustrated.
+    Long sequences of "scroll" => thinking (reading through content).

@@ -1,0 +1,16 @@
+[project]
+name = "psychic-train-broker"
+version = "0.1.0"
+description = "psychic-train session broker: generalized environment-kind orchestrator"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.29.0",
+    "redis>=5.2.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.9.0",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+]

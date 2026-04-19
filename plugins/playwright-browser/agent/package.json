@@ -1,0 +1,10 @@
+{
+  "name": "psychic-train-playwright-browser-agent",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

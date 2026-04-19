@@ -1,0 +1,9 @@
+{
+  "name": "psychic-train-minecraft-stream-client",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "mineflayer": "^4.37.0",
+    "prismarine-viewer": "^1.33.0"
+  }
+}

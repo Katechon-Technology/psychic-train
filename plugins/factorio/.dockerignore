@@ -1,0 +1,18 @@
+# Build context for stream-client/Dockerfile is this directory. Exclude things
+# that aren't needed in the image or that trip BuildKit.
+
+# Self-referential symlink inside factorio-client/ (factorio-client/factorio-client
+# -> ./factorio-client) breaks BuildKit's checksum walker. Ignore it.
+factorio-client/factorio-client
+
+# Huge / unused subtrees of Factorio installs.
+factorio-client/doc-html
+factorio-client/saves
+
+# Agent source isn't needed for the stream-client image.
+agent/
+
+# Repo noise.
+README.md
+*.md
+.git

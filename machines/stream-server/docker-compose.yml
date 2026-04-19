@@ -1,0 +1,35 @@
+# Production stream-server stack. Hosts stream-agent and all the stream-client
+# child images so the broker can POST /spawn/stream-client remotely. No NixOS.
+
+name: psychic_train_stream
+
+networks:
+  default:
+    name: psychic_train_net
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  stream-agent:
+    image: ${IMAGE_REGISTRY:-}psychic-train-stream-agent:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      STREAM_AGENT_KEY: ${STREAM_AGENT_KEY}
+      DOCKER_NETWORK: psychic_train_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8090:8090"
+
+volumes:
+  caddy_data:
+  caddy_config:

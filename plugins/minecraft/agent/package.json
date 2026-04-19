@@ -1,0 +1,9 @@
+{
+  "name": "psychic-train-minecraft-agent",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "mineflayer": "^4.37.0"
+  }
+}

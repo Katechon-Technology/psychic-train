@@ -1,0 +1,12 @@
+# Route `<kind><slot>.<STREAM_DOMAIN>` to the matching stream-client container's
+# port 3000. Each kind's stream-client container is named
+# `stream-client-<kind>-<slot>` (see broker services/streaming.py).
+
+*.{$STREAM_DOMAIN} {
+    tls {$STREAM_TLS_EMAIL}
+
+    @hasMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
+    handle @hasMatch {
+        reverse_proxy stream-client-{re.host.1}-{re.host.2}:3000
+    }
+}
