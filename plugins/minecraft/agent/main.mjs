@@ -1,8 +1,3 @@
-// Minecraft plugin agent — a mineflayer bot driven by Claude.
-//
-// Structure borrowed from ../../../cli-minecraft/build-house.js, but decisions
-// come from Claude each cycle instead of a hardcoded script.
-
 import mineflayer from "mineflayer";
 import Anthropic from "@anthropic-ai/sdk";
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -23,7 +18,6 @@ if (!ENV_HOST || !ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 
-// Shared-volume JSONL log the narrator tails. Safe no-op when the dir isn't mounted.
 function log(kind, fields = {}) {
   try {
     mkdirSync(dirname(SESSION_LOG_PATH), { recursive: true });
@@ -36,135 +30,164 @@ function log(kind, fields = {}) {
   }
 }
 
-console.log(`[agent] session=${SESSION_ID} connecting to ${ENV_HOST}:${GAME_PORT}`);
-log("session_start", { session_id: SESSION_ID, host: ENV_HOST, port: GAME_PORT });
+function createBot() {
+  console.log(`[agent] session=${SESSION_ID} connecting to ${ENV_HOST}:${GAME_PORT}`);
+  const bot = mineflayer.createBot({
+    host: ENV_HOST,
+    port: Number(GAME_PORT),
+    username: USERNAME,
+    auth: "offline",
+  });
 
-const bot = mineflayer.createBot({
-  host: ENV_HOST,
-  port: Number(GAME_PORT),
-  username: USERNAME,
-  auth: "offline",
-});
+  bot.on("error", (e) => console.error("[agent] bot error:", e.message));
+  bot.on("kicked", (r) => console.warn("[agent] kicked:", r));
+  bot.on("end", () => {
+    console.log("[agent] disconnected; reconnecting in 5s");
+    setTimeout(createBot, 5000);
+  });
 
-bot.on("error", (e) => {
-  console.error("[agent] bot error:", e.message);
-});
-bot.on("kicked", (r) => console.warn("[agent] kicked:", r));
-bot.on("end", () => process.exit(0));
+  const claude = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
-const claude = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-
-function stateSnapshot() {
-  if (!bot.entity) return "uninitialized";
-  const p = bot.entity.position;
-  const yaw = bot.entity.yaw.toFixed(2);
-  const health = bot.health;
-  const nearby = Object.values(bot.entities)
-    .filter((e) => e !== bot.entity && e.position.distanceTo(p) < 20)
-    .slice(0, 5)
-    .map((e) => `${e.name ?? e.displayName ?? "entity"}@${e.position.x.toFixed(0)},${e.position.y.toFixed(0)},${e.position.z.toFixed(0)}`)
-    .join("; ");
-  return `pos=${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)} yaw=${yaw} hp=${health} nearby=[${nearby}]`;
-}
-
-const tools = [
-  {
-    name: "chat",
-    description: "Say something in chat or run a slash command like /time set day.",
-    input_schema: { type: "object", properties: { message: { type: "string" } }, required: ["message"] },
-  },
-  {
-    name: "look",
-    description: "Set view direction. yaw in radians (0=south), pitch -PI/2..PI/2.",
-    input_schema: { type: "object", properties: { yaw: { type: "number" }, pitch: { type: "number" } }, required: ["yaw", "pitch"] },
-  },
-  {
-    name: "move",
-    description: "Set movement controls for `duration_ms` then stop.",
-    input_schema: {
-      type: "object",
-      properties: {
-        forward: { type: "boolean" },
-        back: { type: "boolean" },
-        left: { type: "boolean" },
-        right: { type: "boolean" },
-        jump: { type: "boolean" },
-        sprint: { type: "boolean" },
-        duration_ms: { type: "number" },
-      },
-      required: ["duration_ms"],
-    },
-  },
-  {
-    name: "wait",
-    description: "Idle for N seconds so the stream viewer can see.",
-    input_schema: { type: "object", properties: { seconds: { type: "number" } }, required: ["seconds"] },
-  },
-];
-
-async function runTool(tool, input) {
-  switch (tool) {
-    case "chat":
-      bot.chat(input.message);
-      return "sent";
-    case "look":
-      await bot.look(input.yaw, input.pitch, false);
-      return "ok";
-    case "move": {
-      const controls = ["forward", "back", "left", "right", "jump", "sprint"];
-      for (const c of controls) if (c in input) bot.setControlState(c, !!input[c]);
-      await new Promise((r) => setTimeout(r, Math.min(15000, Number(input.duration_ms) || 500)));
-      for (const c of controls) bot.setControlState(c, false);
-      return "moved";
-    }
-    case "wait":
-      await new Promise((r) => setTimeout(r, Math.min(60, Number(input.seconds) || 1) * 1000));
-      return `waited ${input.seconds}s`;
-    default:
-      return `unknown tool: ${tool}`;
+  function stateSnapshot() {
+    if (!bot.entity) return "uninitialized";
+    const p = bot.entity.position;
+    const yaw = bot.entity.yaw.toFixed(2);
+    const health = bot.health;
+    const nearby = Object.values(bot.entities)
+      .filter((e) => e !== bot.entity && e.position.distanceTo(p) < 20)
+      .slice(0, 5)
+      .map((e) => `${e.name ?? e.displayName ?? "entity"}@${e.position.x.toFixed(0)},${e.position.y.toFixed(0)},${e.position.z.toFixed(0)}`)
+      .join("; ");
+    return `pos=${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)} yaw=${yaw} hp=${health} nearby=[${nearby}]`;
   }
-}
 
-bot.once("spawn", async () => {
-  console.log("[agent] spawned; waiting 4s for chunks");
-  await new Promise((r) => setTimeout(r, 4000));
-
-  const messages = [
+  const tools = [
     {
-      role: "user",
-      content:
-        "You are a Minecraft bot in creative mode. Explore your surroundings, interact with the world, and entertain a viewer for a few minutes. Start by looking around, then move to somewhere interesting. Call one tool per turn.",
+      name: "chat",
+      description: "Say something in chat or run a slash command like /time set day.",
+      input_schema: { type: "object", properties: { message: { type: "string" } }, required: ["message"] },
+    },
+    {
+      name: "look",
+      description: "Set view direction. yaw in radians (0=south), pitch -PI/2..PI/2.",
+      input_schema: { type: "object", properties: { yaw: { type: "number" }, pitch: { type: "number" } }, required: ["yaw", "pitch"] },
+    },
+    {
+      name: "move",
+      description: "Set movement controls for `duration_ms` then stop.",
+      input_schema: {
+        type: "object",
+        properties: {
+          forward: { type: "boolean" },
+          back: { type: "boolean" },
+          left: { type: "boolean" },
+          right: { type: "boolean" },
+          jump: { type: "boolean" },
+          sprint: { type: "boolean" },
+          duration_ms: { type: "number" },
+        },
+        required: ["duration_ms"],
+      },
+    },
+    {
+      name: "wait",
+      description: "Idle for N seconds so the stream viewer can see.",
+      input_schema: { type: "object", properties: { seconds: { type: "number" } }, required: ["seconds"] },
     },
   ];
-  const system =
-    "You control a mineflayer bot. Each turn, examine the state and call ONE tool. When you've done enough, stop calling tools (end turn).";
 
-  for (let step = 0; step < 40; step++) {
-    messages.push({ role: "user", content: `State: ${stateSnapshot()}` });
-    const res = await claude.messages.create({
-      model: MODEL,
-      max_tokens: 512,
-      system,
-      messages,
-      tools,
-    });
-    messages.push({ role: "assistant", content: res.content });
-
-    const toolUses = res.content.filter((b) => b.type === "tool_use");
-    if (toolUses.length === 0) {
-      console.log("[agent] no tool calls; ending");
-      break;
+  async function runTool(tool, input) {
+    switch (tool) {
+      case "chat":
+        bot.chat(input.message);
+        return "sent";
+      case "look":
+        await bot.look(input.yaw, input.pitch, false);
+        return "ok";
+      case "move": {
+        const controls = ["forward", "back", "left", "right", "jump", "sprint"];
+        for (const c of controls) if (c in input) bot.setControlState(c, !!input[c]);
+        await new Promise((r) => setTimeout(r, Math.min(15000, Number(input.duration_ms) || 500)));
+        for (const c of controls) bot.setControlState(c, false);
+        return "moved";
+      }
+      case "wait":
+        await new Promise((r) => setTimeout(r, Math.min(60, Number(input.seconds) || 1) * 1000));
+        return `waited ${input.seconds}s`;
+      default:
+        return `unknown tool: ${tool}`;
     }
-    const results = [];
-    for (const tu of toolUses) {
-      const out = await runTool(tu.name, tu.input);
-      console.log(`[agent] step=${step} ${tu.name}(${JSON.stringify(tu.input)}) -> ${out}`);
-      log(tu.name, { step, input: tu.input, result: out });
-      results.push({ type: "tool_result", tool_use_id: tu.id, content: out });
-    }
-    messages.push({ role: "user", content: results });
   }
 
-  log("session_end", { reason: "agent_complete" });
-  bot.quit();
-});
+  bot.once("spawn", async () => {
+    console.log("[agent] spawned; waiting 4s for chunks");
+    log("session_start", { session_id: SESSION_ID, host: ENV_HOST, port: GAME_PORT });
+    await new Promise((r) => setTimeout(r, 4000));
+
+    // Keep the Spectator stream-client locked onto ClaudeBot.
+    const spectatorInterval = setInterval(() => {
+      if (bot.players["Spectator"]) {
+        bot.chat("/gamemode spectator Spectator");
+        bot.chat(`/execute as Spectator run spectate ${USERNAME}`);
+      }
+    }, 8000);
+    bot.once("end", () => clearInterval(spectatorInterval));
+
+    const systemPrompt =
+      "You control a mineflayer bot in Minecraft creative mode. Each turn, examine the state and call ONE tool. Explore, build, interact — keep it interesting for a live stream viewer. Never stop exploring.";
+
+    const seed = {
+      role: "user",
+      content:
+        "You are a Minecraft bot in creative mode. Explore your surroundings, interact with the world, and entertain a viewer. Start by looking around, then move to somewhere interesting. Call one tool per turn.",
+    };
+    let messages = [seed];
+    let step = 0;
+
+    while (true) {
+      step++;
+      messages.push({ role: "user", content: `State: ${stateSnapshot()}` });
+
+      // Trim history every 10 steps to avoid unbounded context growth.
+      if (step % 10 === 0 && messages.length > 22) {
+        messages = [seed, ...messages.slice(-20)];
+      }
+
+      let res;
+      try {
+        res = await claude.messages.create({
+          model: MODEL,
+          max_tokens: 512,
+          system: systemPrompt,
+          messages,
+          tools,
+        });
+      } catch (err) {
+        console.error("[agent] claude error:", err.message);
+        await new Promise((r) => setTimeout(r, 5000));
+        continue;
+      }
+
+      messages.push({ role: "assistant", content: res.content });
+
+      const toolUses = res.content.filter((b) => b.type === "tool_use");
+      if (toolUses.length === 0) {
+        console.log("[agent] no tool calls; idling 5s then continuing");
+        await new Promise((r) => setTimeout(r, 5000));
+        continue;
+      }
+
+      const results = [];
+      for (const tu of toolUses) {
+        const out = await runTool(tu.name, tu.input);
+        console.log(`[agent] step=${step} ${tu.name}(${JSON.stringify(tu.input)}) -> ${out}`);
+        log(tu.name, { step, input: tu.input, result: out });
+        results.push({ type: "tool_result", tool_use_id: tu.id, content: out });
+      }
+      messages.push({ role: "user", content: results });
+    }
+  });
+}
+
+log("session_start", { session_id: SESSION_ID });
+createBot();
