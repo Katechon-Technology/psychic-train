@@ -109,11 +109,9 @@ services:
     command: ["true"]
 
   vtuber-overlay:
-    # Build context = katechon parent so the Dockerfile can COPY the mao_pro model
-    # from claudetorio/packages/vtuber-stream-client/vendor/... without duplicating.
     build:
-      context: ../..
-      dockerfile: psychic-train/packages/vtuber-overlay/Dockerfile
+      context: ..
+      dockerfile: packages/vtuber-overlay/Dockerfile
     image: psychic-train/vtuber-overlay:latest
     depends_on: [stream-client-base]
     profiles: ["build"]
@@ -142,11 +140,8 @@ services:
     command: ["true"]
 
   playwright-browser-stream-client:
-    # Context is the katechon parent so we can COPY both the upstream
-    # `playwright-browser/` source and this plugin's `launch.sh`.
     build:
-      context: ../..
-      dockerfile: psychic-train/plugins/playwright-browser/stream-client/Dockerfile
+      context: ../plugins/playwright-browser/stream-client
     image: psychic-train/playwright-browser-stream-client:latest
     depends_on: [stream-client-base]
     profiles: ["build"]

@@ -14,18 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /pw-browser
 
-# The playwright-browser project is a sibling under katechon; the dev compose
-# build context is set to `../..` so this COPY sees it.
-COPY playwright-browser/package.json playwright-browser/tsconfig.json ./
+COPY pw-browser/package.json pw-browser/tsconfig.json ./
 RUN npm install --no-audit --no-fund \
     && npx playwright install chromium --with-deps \
     || npx playwright install chromium
 
-COPY playwright-browser/src ./src
-COPY playwright-browser/mcp-shim ./mcp-shim
+COPY pw-browser/src ./src
+COPY pw-browser/mcp-shim ./mcp-shim
 
-# launch.sh (from this plugin) is copied last so layers above cache.
-COPY psychic-train/plugins/playwright-browser/stream-client/launch.sh /app/launch.sh
+COPY launch.sh /app/launch.sh
 RUN chmod +x /app/launch.sh
 
 ENV PW_HOST=0.0.0.0 \

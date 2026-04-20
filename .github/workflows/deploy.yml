@@ -2,8 +2,12 @@ name: deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   detect-changes:
@@ -31,24 +35,163 @@ jobs:
               - 'plugins/**/stream-client/**'
               - 'machines/stream-server/**'
 
+  build-base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push stream-client-base
+        uses: docker/build-push-action@v6
+        with:
+          context: packages/stream-client-base
+          push: true
+          tags: ghcr.io/katechon-technology/psychic-train-stream-client-base:latest
+
+  build:
+    needs: [build-base]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: broker
+            context: packages/broker
+          - name: frontend
+            context: packages/frontend
+          - name: stream-agent
+            context: packages/stream-agent
+          - name: vtuber-overlay
+            context: .
+            dockerfile: packages/vtuber-overlay/Dockerfile
+          - name: factorio-agent
+            context: plugins/factorio/agent
+          - name: factorio-stream-client
+            context: plugins/factorio/stream-client
+          - name: minecraft-env
+            context: plugins/minecraft/environment
+          - name: minecraft-agent
+            context: plugins/minecraft/agent
+          - name: minecraft-stream-client
+            context: plugins/minecraft/stream-client
+          - name: playwright-browser-agent
+            context: plugins/playwright-browser/agent
+          - name: playwright-browser-stream-client
+            context: plugins/playwright-browser/stream-client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull stream-client-base for dependent images
+        run: |
+          docker pull ghcr.io/katechon-technology/psychic-train-stream-client-base:latest
+          docker tag  ghcr.io/katechon-technology/psychic-train-stream-client-base:latest psychic-train/stream-client-base:latest
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
+          push: true
+          tags: ghcr.io/katechon-technology/psychic-train-${{ matrix.name }}:latest
+
   deploy-game:
-    needs: detect-changes
+    needs: [detect-changes, build]
     if: needs.detect-changes.outputs.game == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to game-server
+      - name: Configure SSH
         run: |
-          # placeholder — wire your rsync + ssh-exec-deploy.sh here, mirroring
-          # claudetorio/.github/workflows/deploy.yml.
-          echo "TODO: rsync /opt/psychic-train and run machines/game-server/deploy.sh"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Pull images, sync repo, restart
+        timeout-minutes: 10
+        run: |
+          ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=6 root@${{ secrets.GAME_SERVER_HOST }} bash -s << 'ENDSSH'
+            set -euo pipefail
+            set -a; source /opt/psychic-train/machines/game-server/.env; set +a
+            echo "$GHCR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            git -C /opt/psychic-train fetch origin master
+            git -C /opt/psychic-train reset --hard origin/master
+
+            REGISTRY=ghcr.io/katechon-technology
+
+            # Compose-managed services (retagged to match IMAGE_REGISTRY= in .env)
+            for name in broker frontend; do
+              docker pull $REGISTRY/psychic-train-${name}:latest
+              docker tag  $REGISTRY/psychic-train-${name}:latest psychic-train-${name}:latest
+            done
+
+            # On-demand plugin images spawned by the broker (manifest naming convention)
+            for name in factorio-agent minecraft-env minecraft-agent playwright-browser-agent; do
+              docker pull $REGISTRY/psychic-train-${name}:latest
+              docker tag  $REGISTRY/psychic-train-${name}:latest psychic-train/${name}:latest
+            done
+
+            # Reap broker-spawned containers so new sessions use updated images
+            docker ps -q --filter name=env- --filter name=agent- | xargs -r docker rm -f || true
+
+            cd /opt/psychic-train/machines/game-server
+            docker compose up -d --remove-orphans
+          ENDSSH
 
   deploy-stream:
-    needs: detect-changes
+    needs: [detect-changes, build]
     if: needs.detect-changes.outputs.stream == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to stream-server
+      - name: Configure SSH
         run: |
-          echo "TODO: rsync /opt/psychic-train and run machines/stream-server/deploy.sh"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Pull images, sync repo, restart
+        timeout-minutes: 10
+        run: |
+          ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=6 root@${{ secrets.STREAM_SERVER_HOST }} bash -s << 'ENDSSH'
+            set -euo pipefail
+            set -a; source /opt/psychic-train/machines/stream-server/.env; set +a
+            echo "$GHCR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            git -C /opt/psychic-train fetch origin master
+            git -C /opt/psychic-train reset --hard origin/master
+
+            REGISTRY=ghcr.io/katechon-technology
+
+            # Compose-managed service
+            docker pull $REGISTRY/psychic-train-stream-agent:latest
+            docker tag  $REGISTRY/psychic-train-stream-agent:latest psychic-train-stream-agent:latest
+
+            # On-demand stream-client images spawned by stream-agent
+            for name in stream-client-base vtuber-overlay \
+                        factorio-stream-client minecraft-stream-client \
+                        playwright-browser-stream-client; do
+              docker pull $REGISTRY/psychic-train-${name}:latest
+              docker tag  $REGISTRY/psychic-train-${name}:latest psychic-train/${name}:latest
+            done
+
+            # Reap running stream-client and vtuber containers
+            docker ps -q --filter name=stream-client- --filter name=vtuber- | xargs -r docker rm -f || true
+
+            cd /opt/psychic-train/machines/stream-server
+            docker compose up -d --remove-orphans
+          ENDSSH

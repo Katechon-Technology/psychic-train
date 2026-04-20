@@ -3,8 +3,8 @@
 # hls.js, patches, narrator. Overrides entrypoint to start audio + avatar server
 # + narrator + Chromium + FFmpeg(x11grab+pulse).
 #
-# Build context = katechon parent so we can COPY the mao_pro model from
-# claudetorio/packages/vtuber-stream-client/vendor/... without duplicating files.
+# Build context = psychic-train repo root (packages/vtuber-overlay/live2d-models/mao_pro
+# is vendored here so no sibling-repo checkout is needed).
 
 FROM psychic-train/stream-client-base:latest
 
@@ -42,8 +42,8 @@ RUN git init /app/vtuber \
     && git submodule update --init --recursive
 
 # Patches: adds /api/speak and /api/speak/status; transparent embed.html
-COPY psychic-train/packages/vtuber-overlay/patches/routes.py /app/vtuber/src/open_llm_vtuber/routes.py
-COPY psychic-train/packages/vtuber-overlay/patches/embed.html /app/vtuber/frontend/embed.html
+COPY packages/vtuber-overlay/patches/routes.py /app/vtuber/src/open_llm_vtuber/routes.py
+COPY packages/vtuber-overlay/patches/embed.html /app/vtuber/frontend/embed.html
 
 # Python deps for Open-LLM-VTuber
 RUN cd /app/vtuber && uv sync --frozen --no-dev
@@ -53,19 +53,16 @@ RUN mkdir -p /var/www/html \
     && wget -q -O /var/www/html/hls.min.js \
        "https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"
 
-# Live2D model — copied from claudetorio's vendored checkout to avoid duplicating
-# 9MB of data in psychic-train. Build context is katechon parent.
 RUN mkdir -p /app/vtuber/live2d-models/mao_pro
-COPY claudetorio/packages/vtuber-stream-client/vendor/claudetorio-stream-avatar/live2d-models/mao_pro/ \
-     /app/vtuber/live2d-models/mao_pro/
+COPY packages/vtuber-overlay/live2d-models/mao_pro/ /app/vtuber/live2d-models/mao_pro/
 
 # Overlay assets + scripts
-COPY psychic-train/packages/vtuber-overlay/conf.yaml.template /conf.yaml.template
-COPY psychic-train/packages/vtuber-overlay/wrapper.html /wrapper.html
-COPY psychic-train/packages/vtuber-overlay/entrypoint.sh /entrypoint.sh
-COPY psychic-train/packages/vtuber-overlay/narrate.py /narrate.py
-COPY psychic-train/packages/vtuber-overlay/scripts/start-rtmp.sh /scripts/start-rtmp.sh
-COPY psychic-train/packages/vtuber-overlay/scripts/stop-rtmp.sh /scripts/stop-rtmp.sh
+COPY packages/vtuber-overlay/conf.yaml.template /conf.yaml.template
+COPY packages/vtuber-overlay/wrapper.html /wrapper.html
+COPY packages/vtuber-overlay/entrypoint.sh /entrypoint.sh
+COPY packages/vtuber-overlay/narrate.py /narrate.py
+COPY packages/vtuber-overlay/scripts/start-rtmp.sh /scripts/start-rtmp.sh
+COPY packages/vtuber-overlay/scripts/stop-rtmp.sh /scripts/stop-rtmp.sh
 RUN chmod +x /entrypoint.sh /scripts/start-rtmp.sh /scripts/stop-rtmp.sh
 
 # Override stream-client-base's CMD with our own entrypoint.
