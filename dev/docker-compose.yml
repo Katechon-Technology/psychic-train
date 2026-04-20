@@ -17,8 +17,14 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-  psychic_train_minecraft_server:   # populated by minecraft-server-init below
-  psychic_train_factorio_client:    # populated by factorio-client-init below
+  # Explicit `name:` overrides — otherwise compose prefixes volumes with the
+  # project name (`psychic_train_psychic_train_minecraft_server`), which doesn't
+  # match the un-prefixed names the broker spawns containers with via the
+  # plugin manifests.
+  psychic_train_minecraft_server:
+    name: psychic_train_minecraft_server
+  psychic_train_factorio_client:
+    name: psychic_train_factorio_client
 
 services:
   # ---------------- long-lived services ----------------

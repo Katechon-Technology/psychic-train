@@ -11,6 +11,7 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
+  const [streamErr, setStreamErr] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
 
@@ -44,8 +45,26 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
     if (!session?.stream_url || !videoRef.current) return;
     const src = session.stream_url.replace(/\/?$/, "/") + "stream.m3u8";
     const video = videoRef.current;
+    setStreamErr(null);
+    // eslint-disable-next-line no-console
+    console.log("[stream] attaching hls.js to", src);
     if (Hls.isSupported()) {
       const hls = new Hls({ liveSyncDurationCount: 3, maxBufferLength: 20 });
+      hls.on(Hls.Events.MANIFEST_LOADED, () =>
+        console.log("[stream] manifest loaded"),
+      );
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.warn("[stream] hls error", data);
+        if (data.fatal) {
+          setStreamErr(
+            `${data.type}/${data.details} — ${data.response?.url ?? src}`,
+          );
+          // Try to recover on network issues — nginx might not have opened yet.
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            setTimeout(() => hls.loadSource(src), 3000);
+          }
+        }
+      });
       hls.loadSource(src);
       hls.attachMedia(video);
       return () => hls.destroy();
@@ -112,17 +131,27 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
-      <div className="aspect-video bg-black rounded-lg overflow-hidden border border-neutral-800">
+      <div className="aspect-video bg-black rounded-lg overflow-hidden border border-neutral-800 relative">
         {session?.stream_url ? (
           <video ref={videoRef} autoPlay muted playsInline controls className="w-full h-full" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-neutral-500 p-6 text-center whitespace-pre-wrap">
             {session?.status === "failed"
               ? session.error || "session failed"
-              : "spinning up container…"}
+              : `spinning up container… (status: ${session?.status ?? "loading"})`}
+          </div>
+        )}
+        {streamErr && (
+          <div className="absolute bottom-2 left-2 right-2 bg-red-950/90 border border-red-800 text-red-200 text-xs p-2 rounded break-all">
+            stream error: {streamErr}
           </div>
         )}
       </div>
+      {session?.stream_url && (
+        <div className="text-xs text-neutral-500 break-all">
+          source: {session.stream_url.replace(/\/?$/, "/")}stream.m3u8
+        </div>
+      )}
 
       <WorkerPanel
         session={session}

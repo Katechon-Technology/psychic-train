@@ -40,7 +40,8 @@ stream_client:
     MC_HOST: "{env_host}"
     MC_PORT: "{game_internal}"
     VIEWER_USERNAME: "Spectator"
-    STREAM_WARMUP_SECONDS: "10"
+    MC_VERSION: "1.21.11"
+    STREAM_WARMUP_SECONDS: "30"
 
 narration:
   enabled: true
