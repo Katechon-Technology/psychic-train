@@ -13,21 +13,8 @@ volumes:
   postgres_data:
   redis_data:
   psychic_train_minecraft_server:
-  caddy_data:
-  caddy_config:
 
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
