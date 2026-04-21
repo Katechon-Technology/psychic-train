@@ -121,6 +121,14 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
             ctx["env_host"] = config.STREAM_PUBLIC_HOST
             for p in m.ports:
                 ctx[f"{p.name}_port"] = str(p.base + slot)
+                ctx[f"{p.name}_internal"] = str(p.base + slot)
+        elif m.topology == "separate" and config.STREAM_AGENT_URL and config.GAME_SERVER_PUBLIC_HOST:
+            # Stream-client runs on stream server; env container runs on game server.
+            # Override env_host and port vars so the stream-client uses the public host.
+            ctx["env_host"] = config.GAME_SERVER_PUBLIC_HOST
+            for p in m.ports:
+                ctx[f"{p.name}_port"] = str(p.base + slot)
+                ctx[f"{p.name}_internal"] = str(p.base + slot)
 
         plugin_stream_url = await streaming_svc.spawn_stream_client(
             kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
