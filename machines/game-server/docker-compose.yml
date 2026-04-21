@@ -70,6 +70,11 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       MODEL: ${MODEL:-claude-sonnet-4-5-20250929}
       RCON_PASSWORD: ${RCON_PASSWORD}
+      TWITCH_STREAM_KEY: ${TWITCH_STREAM_KEY:-}
+      KICK_STREAM_KEY: ${KICK_STREAM_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
+      VTUBER_OVERLAY_IMAGE: ${VTUBER_OVERLAY_IMAGE:-psychic-train/vtuber-overlay:latest}
     volumes:
       - /opt/psychic-train/plugins:/plugins:ro
       - /var/run/docker.sock:/var/run/docker.sock
