@@ -40,9 +40,54 @@ character_config:
         model: 'claude-haiku-4-5-20251001'
 
   asr_config:
-    asr_model: 'groq_whisper_asr'
+    asr_model: 'sherpa_onnx_asr'
+
+    azure_asr:
+      api_key: ''
+      region: 'eastus'
+      languages: ['en-US']
+
+    faster_whisper:
+      model_path: 'large-v3-turbo'
+      download_root: 'models/whisper'
+      language: 'en'
+      device: 'auto'
+      compute_type: 'int8'
+      prompt: ''
+
+    whisper_cpp:
+      model_name: 'small'
+      model_dir: 'models/whisper'
+      print_realtime: False
+      print_progress: False
+
+    whisper:
+      name: 'medium'
+      download_root: 'models/whisper'
+      device: 'cpu'
+      prompt: ''
+
+    fun_asr:
+      model_name: 'iic/SenseVoiceSmall'
+      vad_model: 'fsmn-vad'
+      punc_model: 'ct-punc'
+      device: 'cpu'
+      disable_update: True
+      ncpu: 4
+      hub: 'ms'
+      use_itn: False
+      language: 'auto'
+
+    sherpa_onnx_asr:
+      model_type: 'sense_voice'
+      sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
+      tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
+      num_threads: 4
+      use_itn: True
+      provider: 'cpu'
+
     groq_whisper_asr:
-      api_key: 'disabled'
+      api_key: ''
 
   tts_config:
     tts_model: 'elevenlabs_tts'

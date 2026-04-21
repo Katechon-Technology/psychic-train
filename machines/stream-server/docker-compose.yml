@@ -28,6 +28,7 @@ services:
     environment:
       STREAM_AGENT_KEY: ${STREAM_AGENT_KEY}
       DOCKER_NETWORK: psychic_train_net
+      VTUBER_MODELS_PATH: ${VTUBER_MODELS_PATH:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:

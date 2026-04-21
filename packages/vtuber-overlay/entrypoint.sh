@@ -84,6 +84,12 @@ pactl load-module module-null-sink sink_name=virtual_speaker \
 pactl set-default-sink virtual_speaker >/dev/null 2>&1 || true
 pactl set-default-source virtual_speaker.monitor >/dev/null 2>&1 || true
 
+# ---------- 2b. ASR models ----------
+if [ -d /models-src ] && [ "$(ls -A /models-src 2>/dev/null)" ]; then
+    log "Copying ASR models from /models-src..."
+    cp -r /models-src/. /app/vtuber/models/
+fi
+
 # ---------- 3. conf.yaml ----------
 log "rendering conf.yaml.template..."
 envsubst < /conf.yaml.template > /app/vtuber/conf.yaml

@@ -53,7 +53,7 @@ RUN mkdir -p /var/www/html \
     && wget -q -O /var/www/html/hls.min.js \
        "https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js"
 
-RUN mkdir -p /app/vtuber/live2d-models/mao_pro
+RUN mkdir -p /app/vtuber/live2d-models/mao_pro /app/vtuber/models
 COPY packages/vtuber-overlay/live2d-models/mao_pro/ /app/vtuber/live2d-models/mao_pro/
 
 # Overlay assets + scripts

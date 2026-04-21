@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 STREAM_AGENT_KEY = os.getenv("STREAM_AGENT_KEY", "")
 DOCKER_NETWORK_DEFAULT = os.getenv("DOCKER_NETWORK", "psychic_train_net")
+VTUBER_MODELS_PATH = os.getenv("VTUBER_MODELS_PATH", "")
 HLS_READY_TIMEOUT_SECONDS = 180
 VTUBER_READY_TIMEOUT_SECONDS = 300
 
@@ -88,6 +89,11 @@ async def spawn_stream_client(req: SpawnRequest, _=Depends(require_auth)):
 @app.post("/spawn/vtuber-overlay")
 async def spawn_vtuber_overlay(req: SpawnRequest, _=Depends(require_auth)):
     # VTuber containers take longer to come up (Open-LLM-VTuber server + Chrome).
+    # Inject ASR models volume if configured on this host.
+    if VTUBER_MODELS_PATH:
+        req.volumes = list(req.volumes) + [
+            {"name": VTUBER_MODELS_PATH, "mount": "/models-src", "readonly": True}
+        ]
     return await _spawn_and_wait_hls(req, readiness_timeout=VTUBER_READY_TIMEOUT_SECONDS)
 
 
