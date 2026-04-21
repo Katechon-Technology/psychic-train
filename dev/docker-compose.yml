@@ -79,6 +79,7 @@ services:
       NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
       TWITCH_STREAM_KEY: ${TWITCH_STREAM_KEY:-}
       KICK_STREAM_KEY: ${KICK_STREAM_KEY:-}
+      GAME_SERVER_PUBLIC_HOST: ${GAME_SERVER_PUBLIC_HOST:-}
     volumes:
       - ../plugins:/plugins:ro
       - /var/run/docker.sock:/var/run/docker.sock
@@ -114,6 +115,13 @@ services:
       dockerfile: packages/vtuber-overlay/Dockerfile
     image: psychic-train/vtuber-overlay:latest
     depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  stream-agent:
+    build:
+      context: ../packages/stream-agent
+    image: psychic-train-stream-agent:latest
     profiles: ["build"]
     command: ["true"]
 
