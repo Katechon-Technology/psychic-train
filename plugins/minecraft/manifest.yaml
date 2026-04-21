@@ -29,6 +29,7 @@ agent:
     ANTHROPIC_API_KEY: "{anthropic_api_key}"
     MODEL: "{model}"
     USERNAME: "ClaudeBot"
+    VIEWER_USERNAME: "Spectator"
 
 stream_client:
   image: psychic-train/minecraft-stream-client:latest

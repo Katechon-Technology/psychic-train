@@ -9,6 +9,7 @@ const {
   ANTHROPIC_API_KEY,
   MODEL = "claude-sonnet-4-5-20250929",
   USERNAME = "ClaudeBot",
+  VIEWER_USERNAME = "Spectator",
   SESSION_ID = "unknown",
   SESSION_LOG_PATH = "/var/log/session/agent.jsonl",
 } = process.env;
@@ -125,10 +126,11 @@ function createBot() {
     await new Promise((r) => setTimeout(r, 4000));
 
     // Keep the Spectator stream-client locked onto ClaudeBot.
+    // Requires ClaudeBot to be an operator on the server.
     const spectatorInterval = setInterval(() => {
-      if (bot.players["Spectator"]) {
-        bot.chat("/gamemode spectator Spectator");
-        bot.chat(`/execute as Spectator run spectate ${USERNAME}`);
+      if (bot.players[VIEWER_USERNAME]) {
+        bot.chat(`/gamemode spectator ${VIEWER_USERNAME}`);
+        bot.chat(`/execute as ${VIEWER_USERNAME} run spectate ${USERNAME}`);
       }
     }, 8000);
     bot.once("end", () => clearInterval(spectatorInterval));
@@ -148,9 +150,20 @@ function createBot() {
       step++;
       messages.push({ role: "user", content: `State: ${stateSnapshot()}` });
 
-      // Trim history every 10 steps to avoid unbounded context growth.
+      // Trim history every 10 steps. Always start the kept slice on a
+      // non-tool_result user turn so there are no orphaned tool_result blocks.
       if (step % 10 === 0 && messages.length > 22) {
-        messages = [seed, ...messages.slice(-20)];
+        let kept = messages.slice(-20);
+        while (kept.length > 0) {
+          const first = kept[0];
+          if (first.role === "user" && Array.isArray(first.content) &&
+              first.content[0]?.type === "tool_result") {
+            kept = kept.slice(2); // drop the orphaned tool_result + its assistant pair
+          } else {
+            break;
+          }
+        }
+        messages = [seed, ...kept];
       }
 
       let res;
