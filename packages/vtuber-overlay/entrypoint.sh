@@ -96,7 +96,7 @@ if [ -n "${ANTHROPIC_API_KEY}" ]; then
     ELAPSED=0
     until curl -sf http://localhost:12393/ >/dev/null 2>&1; do
         kill -0 "$VTUBER_PID" 2>/dev/null || fail "VTuber server exited early"
-        [ "$ELAPSED" -ge 60 ] && fail "VTuber server not ready after 60s"
+        [ "$ELAPSED" -ge 180 ] && fail "VTuber server not ready after 180s"
         sleep 2; ELAPSED=$((ELAPSED+2))
     done
     log "VTuber server ready (${ELAPSED}s)"

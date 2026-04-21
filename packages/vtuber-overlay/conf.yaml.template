@@ -40,7 +40,9 @@ character_config:
         model: 'claude-haiku-4-5-20251001'
 
   asr_config:
-    asr_model: null
+    asr_model: 'groq_whisper_asr'
+    groq_whisper_asr:
+      api_key: 'disabled'
 
   tts_config:
     tts_model: 'elevenlabs_tts'
