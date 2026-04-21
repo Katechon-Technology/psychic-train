@@ -13,7 +13,7 @@ STREAM_AGENT_KEY = os.getenv("STREAM_AGENT_KEY", "")
 DOCKER_NETWORK_DEFAULT = os.getenv("DOCKER_NETWORK", "psychic_train_net")
 VTUBER_MODELS_PATH = os.getenv("VTUBER_MODELS_PATH", "")
 HLS_READY_TIMEOUT_SECONDS = 180
-VTUBER_READY_TIMEOUT_SECONDS = 300
+VTUBER_READY_TIMEOUT_SECONDS = 400
 
 
 def require_auth(x_stream_agent_key: str = Header(...)):

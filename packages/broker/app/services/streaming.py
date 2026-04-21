@@ -178,7 +178,7 @@ async def spawn_vtuber_overlay(
                     "volumes": volumes,
                 },
                 headers={"X-Stream-Agent-Key": config.STREAM_AGENT_KEY},
-                timeout=240.0,
+                timeout=400.0,
             )
         if r.status_code != 200:
             raise RuntimeError(f"vtuber spawn returned {r.status_code}: {r.text}")
