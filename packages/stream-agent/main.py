@@ -45,7 +45,7 @@ async def _spawn_and_wait_hls(req: SpawnRequest, readiness_timeout: int) -> dict
 
     network = req.network or DOCKER_NETWORK_DEFAULT
 
-    cmd = ["docker", "run", "-d", "--rm", "--name", req.container_name]
+    cmd = ["docker", "run", "-d", "--name", req.container_name]
     if network:
         cmd += ["--network", network]
     for k, v in req.env.items():
