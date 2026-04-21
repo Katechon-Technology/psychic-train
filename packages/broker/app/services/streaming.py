@@ -35,6 +35,7 @@ async def spawn_stream_client(
     ctx: dict[str, str],
     *,
     publish_host_port: bool = True,
+    extra_ports: list[dict] | None = None,
 ) -> str | None:
     m_stream = manifest.stream_client
     env = manifest_svc.interpolate_env(m_stream.env, ctx)
@@ -56,6 +57,7 @@ async def spawn_stream_client(
                         "container_name": container_name,
                         "image": m_stream.image,
                         "host_port": host_port,
+                        "extra_ports": extra_ports or [],
                         "env": env,
                         "network": config.DOCKER_NETWORK,
                         "volumes": volumes,

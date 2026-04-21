@@ -107,8 +107,23 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
         # RTMP) is NOT spawned here; it only comes up when the user clicks
         # "Start Livestream" to avoid burning CPU/RAM on an overlay nobody is
         # watching. Same topology as claudetorio.
+        #
+        # For combined topology in two-server prod (STREAM_AGENT_URL set), the
+        # stream-client runs on the stream server while the agent runs on the
+        # game server. Publish the plugin's API ports so the agent can reach
+        # the environment over the stream server's public host.
+        extra_ports: list[dict] = []
+        if m.topology == "combined" and config.STREAM_AGENT_URL:
+            extra_ports = [
+                {"host": p.base + slot, "container": p.base}
+                for p in m.ports
+            ]
+            ctx["env_host"] = config.STREAM_PUBLIC_HOST
+            for p in m.ports:
+                ctx[f"{p.name}_port"] = str(p.base + slot)
+
         plugin_stream_url = await streaming_svc.spawn_stream_client(
-            kind, slot, m, ctx, publish_host_port=True,
+            kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
         )
 
         # 3. Ready for viewers. Status=waiting; no worker, no overlay.
@@ -161,7 +176,11 @@ async def start_worker(
         env_host = (
             _env_container_name(kind, slot)
             if m.topology == "separate"
-            else _stream_container_name(kind, slot)
+            else (
+                config.STREAM_PUBLIC_HOST
+                if config.STREAM_AGENT_URL
+                else _stream_container_name(kind, slot)
+            )
         )
         ctx = manifest_svc.build_context(
             slot=slot,
@@ -171,6 +190,9 @@ async def start_worker(
             env_host=env_host,
             combined=(m.topology == "combined"),
         )
+        if m.topology == "combined" and config.STREAM_AGENT_URL:
+            for p in m.ports:
+                ctx[f"{p.name}_port"] = str(p.base + slot)
         # Override the defaults with what the user entered in the modal.
         ctx["anthropic_api_key"] = api_key
         if model:

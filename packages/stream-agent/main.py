@@ -32,6 +32,7 @@ class SpawnRequest(BaseModel):
     container_name: str
     image: str
     host_port: int | None = None     # None → container stays private (no -p)
+    extra_ports: list[dict] = []     # [{"host": int, "container": int}] additional port mappings
     env: dict[str, str] = {}
     network: str = ""
     volumes: list[dict] = []          # [{"name": "<vol>", "mount": "<path>", "readonly": bool}]
@@ -53,6 +54,8 @@ async def _spawn_and_wait_hls(req: SpawnRequest, readiness_timeout: int) -> dict
         cmd += ["-v", f"{vol['name']}:{vol['mount']}{ro}"]
     if req.host_port is not None:
         cmd += ["-p", f"{req.host_port}:3000"]
+    for ep in req.extra_ports:
+        cmd += ["-p", f"{ep['host']}:{ep['container']}"]
     cmd += [req.image]
 
     print(

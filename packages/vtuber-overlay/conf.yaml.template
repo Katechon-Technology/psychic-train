@@ -40,14 +40,7 @@ character_config:
         model: 'claude-haiku-4-5-20251001'
 
   asr_config:
-    asr_model: 'sherpa_onnx_asr'
-    sherpa_onnx_asr:
-      model_type: 'sense_voice'
-      sense_voice: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx'
-      tokens: './models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt'
-      num_threads: 4
-      use_itn: True
-      provider: 'cpu'
+    asr_model: null
 
   tts_config:
     tts_model: 'elevenlabs_tts'
