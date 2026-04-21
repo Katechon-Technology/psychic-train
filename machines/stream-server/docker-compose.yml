@@ -8,6 +8,20 @@ networks:
     name: psychic_train_net
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - STREAM_DOMAIN=${STREAM_DOMAIN}
+      - STREAM_TLS_EMAIL=${STREAM_TLS_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
   stream-agent:
     image: ${IMAGE_REGISTRY:-}psychic-train-stream-agent:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -19,3 +33,6 @@ services:
     ports:
       - "8090:8090"
 
+volumes:
+  caddy_data:
+  caddy_config:

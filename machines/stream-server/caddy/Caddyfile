@@ -1,12 +1,18 @@
-# Route `<kind><slot>.<STREAM_DOMAIN>` to the matching stream-client container's
-# port 3000. Each kind's stream-client container is named
-# `stream-client-<kind>-<slot>` (see broker services/streaming.py).
+{
+	email {$STREAM_TLS_EMAIL}
+
+	on_demand_tls {
+		ask http://stream-agent:8090/health
+	}
+}
 
 *.{$STREAM_DOMAIN} {
-    tls {$STREAM_TLS_EMAIL}
+	tls {
+		on_demand
+	}
 
-    @hasMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
-    handle @hasMatch {
-        reverse_proxy stream-client-{re.host.1}-{re.host.2}:3000
-    }
+	@hasMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
+	handle @hasMatch {
+		reverse_proxy stream-client-{re.host.1}-{re.host.2}:3000
+	}
 }
