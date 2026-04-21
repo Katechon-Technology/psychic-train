@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libglfw3 libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-ARG MC_VERSION=1.21.11
+ARG MC_VERSION=1.21.1
 ENV MC_VERSION=${MC_VERSION}
 
 COPY download_mc.sh /app/download_mc.sh
