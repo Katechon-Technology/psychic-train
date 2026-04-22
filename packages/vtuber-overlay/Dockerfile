@@ -13,6 +13,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         pulseaudio \
+        libasound2-plugins \
+        alsa-utils \
         wget gnupg2 curl \
         python3 python3-pip \
         ca-certificates \

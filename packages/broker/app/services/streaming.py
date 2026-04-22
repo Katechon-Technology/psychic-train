@@ -132,14 +132,11 @@ async def spawn_vtuber_overlay(
     narration: Any,
     plugin_stream_container: str,
     log_volume: str,
+    host_port: int | None = None,
 ) -> None:
-    """Spawn vtuber-{kind}-{slot}. Called by start_livestream (no longer at
-    session spawn time) so we only pay the overlay cost while the user is
-    actively broadcasting. The container pulls the plugin HLS via iframe,
-    composites the Live2D avatar + narration, and exposes its own HLS on :3000
-    internally — start-rtmp.sh inside the container then fans that out to
-    Twitch/Kick. No host port published; nothing outside the docker network
-    needs to reach it."""
+    """Spawn vtuber-{kind}-{slot}. Called by start_livestream when the user
+    clicks "Start VTuber". Publishes host_port:3000 so viewers can reach the
+    composite HLS; pass None to keep it private (e.g. RTMP-only mode)."""
     container_name = f"vtuber-{kind}-{slot}"
     source_url = f"http://{plugin_stream_container}:3000/stream.m3u8"
 
@@ -172,7 +169,7 @@ async def spawn_vtuber_overlay(
                 json={
                     "container_name": container_name,
                     "image": config.VTUBER_OVERLAY_IMAGE,
-                    "host_port": None,
+                    "host_port": host_port,
                     "env": env,
                     "network": config.DOCKER_NETWORK,
                     "volumes": volumes,
@@ -192,6 +189,8 @@ async def spawn_vtuber_overlay(
         for vol in volumes:
             ro = ":ro" if vol.get("readonly") else ""
             cmd += ["-v", f"{vol['name']}:{vol['mount']}{ro}"]
+        if host_port is not None:
+            cmd += ["-p", f"{host_port}:3000"]
         cmd += [config.VTUBER_OVERLAY_IMAGE]
 
         logging.info(f"[streaming] docker run {container_name} (vtuber; source={source_url})")
@@ -240,17 +239,17 @@ async def start_livestream(
     narration: Any,
     log_volume: str,
 ) -> tuple[bool, str]:
-    """Spawn vtuber overlay → wait for its HLS → docker-exec /scripts/start-rtmp.sh.
+    """Spawn vtuber overlay with a public host port. RTMP side-car is started
+    only if stream keys are configured; failure there is non-fatal.
     Returns (ok, message)."""
     container_name = f"vtuber-{kind}-{slot}"
     plugin_stream_container = f"stream-client-{kind}-{slot}"
+    host_port = config.STREAM_BASE_PORT + slot
 
-    # 1. Make sure the log volume exists (might not yet if the worker never
-    # ran). Harmless if already present.
+    # Ensure log volume exists (worker may not have started yet).
     await _ensure_volume_local(log_volume)
 
-    # 2. Spawn vtuber (idempotent — spawn_vtuber_overlay `docker rm -f`'s any
-    # stale container with the same name first).
+    # Spawn vtuber overlay (idempotent — docker rm -f's any stale container).
     try:
         await spawn_vtuber_overlay(
             kind=kind,
@@ -259,13 +258,21 @@ async def start_livestream(
             narration=narration,
             plugin_stream_container=plugin_stream_container,
             log_volume=log_volume,
+            host_port=host_port,
         )
     except Exception as e:
         return False, f"vtuber spawn failed: {e}"
 
-    # 3. Tell the vtuber to start its RTMP side-car.
-    if config.STREAM_AGENT_URL:
-        try:
+    # RTMP is optional — attempt it but don't fail the whole call if no keys
+    # are configured or the exec fails.
+    await _try_start_rtmp(container_name)
+    return True, "vtuber started"
+
+
+async def _try_start_rtmp(container_name: str) -> None:
+    """Best-effort RTMP start. Logs warnings on failure; never raises."""
+    try:
+        if config.STREAM_AGENT_URL:
             async with httpx.AsyncClient() as client:
                 r = await client.post(
                     f"{config.STREAM_AGENT_URL}/containers/{container_name}/rtmp/start",
@@ -273,29 +280,27 @@ async def start_livestream(
                     timeout=30.0,
                 )
             if r.status_code != 200:
-                return False, f"{r.status_code}: {r.text}"
-            return True, r.json().get("output", "ok")
-        except Exception as e:
-            return False, str(e)
-
-    proc = await asyncio.create_subprocess_exec(
-        "docker", "exec", container_name, "/scripts/start-rtmp.sh",
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-    )
-    out, err = await proc.communicate()
-    if proc.returncode != 0:
-        return False, (err or out).decode().strip() or "start-rtmp.sh failed"
-    return True, out.decode().strip()
+                logging.warning(f"[streaming] rtmp start returned {r.status_code}: {r.text}")
+            return
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "exec", container_name, "/scripts/start-rtmp.sh",
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        out, err = await proc.communicate()
+        if proc.returncode != 0:
+            logging.warning(
+                f"[streaming] start-rtmp.sh exited {proc.returncode}: "
+                f"{(err or out).decode().strip()}"
+            )
+    except Exception as e:
+        logging.warning(f"[streaming] rtmp start error: {e}")
 
 
 async def stop_livestream(kind: str, slot: int) -> tuple[bool, str]:
-    """Stop the RTMP side-car, then tear down the vtuber container itself.
-    Preview stays live because the plugin stream-client is untouched."""
+    """Stop the RTMP side-car only. The vtuber container is torn down by the
+    route handler (which also clears session.stream_url)."""
     container_name = f"vtuber-{kind}-{slot}"
-    messages: list[str] = []
 
-    # 1. Best-effort stop of the RTMP side-car. If the container is already
-    # gone this is a no-op.
     if config.STREAM_AGENT_URL:
         try:
             async with httpx.AsyncClient() as client:
@@ -305,22 +310,17 @@ async def stop_livestream(kind: str, slot: int) -> tuple[bool, str]:
                     timeout=30.0,
                 )
             if r.status_code == 200:
-                messages.append(r.json().get("output", "rtmp stopped"))
+                return True, r.json().get("output", "rtmp stopped")
         except Exception as e:
-            messages.append(f"rtmp stop warn: {e}")
-    else:
-        proc = await asyncio.create_subprocess_exec(
-            "docker", "exec", container_name, "/scripts/stop-rtmp.sh",
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        )
-        out, _ = await proc.communicate()
-        if proc.returncode == 0:
-            messages.append(out.decode().strip())
+            logging.warning(f"[streaming] rtmp stop warn: {e}")
+        return True, "rtmp stop attempted"
 
-    # 2. Tear down the vtuber container so we reclaim CPU/RAM between broadcasts.
-    await stop_vtuber_overlay(kind, slot)
-    messages.append("vtuber container removed")
-    return True, "; ".join(messages)
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "exec", container_name, "/scripts/stop-rtmp.sh",
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )
+    out, _ = await proc.communicate()
+    return True, out.decode().strip() or "rtmp stopped"
 
 
 async def _ensure_volume_local(name: str) -> None:

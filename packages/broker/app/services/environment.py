@@ -102,11 +102,11 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
                     m.environment.healthcheck, ctx, _env_container_name(kind, slot)
                 )
 
-        # 2. Plugin stream-client. Always publishes a host port — the frontend
-        # previews this directly. The vtuber overlay (avatar + narration +
-        # RTMP) is NOT spawned here; it only comes up when the user clicks
-        # "Start Livestream" to avoid burning CPU/RAM on an overlay nobody is
-        # watching. Same topology as claudetorio.
+        # 2. Plugin stream-client.
+        #
+        # When narration is enabled the stream-client stays private (no host
+        # port) — the vtuber overlay will own the public port once the user
+        # clicks "Start VTuber". stream_url stays null until then.
         #
         # For combined topology in two-server prod (STREAM_AGENT_URL set), the
         # stream-client runs on the stream server while the agent runs on the
@@ -130,9 +130,15 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
                 ctx[f"{p.name}_port"] = str(p.base + slot)
                 ctx[f"{p.name}_internal"] = str(p.base + slot)
 
-        plugin_stream_url = await streaming_svc.spawn_stream_client(
-            kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
-        )
+        if narration_on:
+            await streaming_svc.spawn_stream_client(
+                kind, slot, m, ctx, publish_host_port=False, extra_ports=extra_ports,
+            )
+            plugin_stream_url = None
+        else:
+            plugin_stream_url = await streaming_svc.spawn_stream_client(
+                kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
+            )
 
         # 3. Ready for viewers. Status=waiting; no worker, no overlay.
         async with async_session_factory() as db:

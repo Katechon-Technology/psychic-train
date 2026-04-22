@@ -330,6 +330,17 @@ def run() -> None:
                 print("  [warn] avatar server not responding; continuing anyway")
             time.sleep(1)
 
+    # Wait for at least one WebSocket client (Chromium's embed.html) to connect.
+    # Without this the intro speak() is silently skipped because clients==0.
+    print("  waiting for browser WebSocket client...")
+    for i in range(60):
+        if has_viewers():
+            print(f"  browser connected ({i}s)")
+            break
+        if i == 59:
+            print("  [warn] no browser client after 60s; proceeding anyway")
+        time.sleep(1)
+
     fh = _wait_for_log()
     if fh is None:
         print("  exiting — no log file to tail")

@@ -188,13 +188,16 @@ async def livestream_start(
         narration=m.narration,
         log_volume=log_volume,
     )
-    sess.livestream_status = "on" if ok else "error"
-    if not ok:
+    if ok:
+        sess.stream_url = config.stream_url_for_slot(sess.slot, sess.kind)
+        sess.livestream_status = "on"
+    else:
+        sess.livestream_status = "error"
         sess.state = {**(sess.state or {}), "livestream_error": msg}
     await db.commit()
     if not ok:
         raise HTTPException(500, f"livestream start failed: {msg}")
-    return {"ok": True, "livestream_status": sess.livestream_status, "output": msg}
+    return {"ok": True, "stream_url": sess.stream_url, "livestream_status": sess.livestream_status}
 
 
 @router.post("/{session_id}/livestream/stop", dependencies=[Depends(require_admin_key)])
@@ -209,6 +212,8 @@ async def livestream_stop(
     if sess.slot is None:
         return {"ok": True, "livestream_status": "off"}
     ok, msg = await streaming_svc.stop_livestream(sess.kind, sess.slot)
+    await streaming_svc.stop_vtuber_overlay(sess.kind, sess.slot)
+    sess.stream_url = None
     sess.livestream_status = "off" if ok else "error"
     await db.commit()
     if not ok:

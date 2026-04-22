@@ -36,7 +36,8 @@ export FRONTEND_URL="${SOURCE_STREAM_URL}"
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 export ELEVENLABS_API_KEY="${ELEVENLABS_API_KEY:-}"
 
-mkdir -p /tmp/.X11-unix /tmp/chrome-profile /tmp/hls /var/www/html
+export XDG_RUNTIME_DIR=/run/user/0
+mkdir -p "$XDG_RUNTIME_DIR" /tmp/.X11-unix /tmp/chrome-profile /tmp/hls /var/www/html
 chmod 1777 /tmp/.X11-unix
 
 XVFB_PID=""; PULSE_PID=""; VTUBER_PID=""; CHROME_PID=""
@@ -57,6 +58,50 @@ cleanup() {
     nginx -s quit 2>/dev/null || true
 }
 trap cleanup SIGTERM SIGINT
+
+# ---------- audio diagnostics (ported from claudetorio) ----------
+audio_diag_snapshot() {
+    local label="$1"
+    log "audio diag (${label}): pactl info"
+    pactl info || true
+    log "audio diag (${label}): sinks"
+    pactl list short sinks || true
+    log "audio diag (${label}): sources"
+    pactl list short sources || true
+}
+
+audio_diag_sink_inputs() {
+    local label="$1"
+    log "audio diag (${label}): sink-inputs"
+    pactl list short sink-inputs || true
+}
+
+audio_diag_poll_sink_inputs() {
+    local rounds="${1:-8}" interval="${2:-2}" found=0 i
+    for i in $(seq 1 "$rounds"); do
+        local out
+        out="$(pactl list short sink-inputs 2>/dev/null || true)"
+        if [ -n "$out" ]; then
+            found=1
+            log "audio diag (sink-inputs poll ${i}/${rounds}):"
+            printf '%s\n' "$out"
+        else
+            log "audio diag (sink-inputs poll ${i}/${rounds}): none"
+        fi
+        sleep "$interval"
+    done
+    [ "$found" -eq 0 ] && log "WARNING: Chrome is not writing audio to PulseAudio (no sink-inputs found)"
+}
+
+audio_diag_probe_monitor() {
+    [ "$VTUBER_AUDIO_DEBUG" = "1" ] || return 0
+    log "audio diag: probing virtual_speaker.monitor for signal (ffmpeg astats)"
+    timeout 6 ffmpeg -hide_banner -loglevel info \
+        -f pulse -i virtual_speaker.monitor \
+        -t 3 -af astats=metadata=1:reset=1 -f null - \
+        >/tmp/vtuber-audio-probe.log 2>&1 || true
+    sed -n '1,200p' /tmp/vtuber-audio-probe.log || true
+}
 
 # ---------- 1. Xvfb ----------
 log "Xvfb $DISPLAY_NUM ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT}"
@@ -83,6 +128,7 @@ pactl load-module module-null-sink sink_name=virtual_speaker \
     sink_properties=device.description=VirtualSpeaker >/dev/null 2>&1 || true
 pactl set-default-sink virtual_speaker >/dev/null 2>&1 || true
 pactl set-default-source virtual_speaker.monitor >/dev/null 2>&1 || true
+audio_diag_snapshot "post-pulse-setup"
 
 # ---------- 2b. ASR models ----------
 if [ -d /models-src ] && [ "$(ls -A /models-src 2>/dev/null)" ]; then
@@ -92,6 +138,14 @@ fi
 
 # ---------- 3. conf.yaml ----------
 log "rendering conf.yaml.template..."
+# Select TTS backend: ElevenLabs when key is set, free edge_tts otherwise.
+if [ -n "${ELEVENLABS_API_KEY}" ]; then
+    export TTS_MODEL="elevenlabs_tts"
+    log "TTS: elevenlabs (voice=${VOICE_ID})"
+else
+    export TTS_MODEL="edge_tts"
+    log "TTS: edge_tts fallback (no ELEVENLABS_API_KEY)"
+fi
 envsubst < /conf.yaml.template > /app/vtuber/conf.yaml
 
 # ---------- 4. Open-LLM-VTuber server ----------
@@ -144,6 +198,11 @@ CHROME_PID=$!
 
 log "waiting ${STREAM_WARMUP_SECONDS:-10}s for Chromium render..."
 sleep "${STREAM_WARMUP_SECONDS:-10}"
+audio_diag_sink_inputs "after-chrome-start"
+if [ "$VTUBER_AUDIO_DEBUG" = "1" ]; then
+    audio_diag_poll_sink_inputs 10 2
+    audio_diag_probe_monitor
+fi
 
 # ---------- 8. FFmpeg — HLS output only. RTMP is started on demand via
 # /scripts/start-rtmp.sh (invoked by the broker through stream-agent) which

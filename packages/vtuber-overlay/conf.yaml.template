@@ -90,7 +90,7 @@ character_config:
       api_key: ''
 
   tts_config:
-    tts_model: 'elevenlabs_tts'
+    tts_model: '${TTS_MODEL}'
     elevenlabs_tts:
       api_key: '${ELEVENLABS_API_KEY}'
       voice_id: '${VOICE_ID}'
@@ -100,6 +100,8 @@ character_config:
       similarity_boost: 0.5
       style: 0.0
       use_speaker_boost: true
+    edge_tts:
+      voice: 'en-US-AriaNeural'
 
   vad_config:
     vad_model: null
