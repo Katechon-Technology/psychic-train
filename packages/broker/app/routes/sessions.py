@@ -189,7 +189,7 @@ async def livestream_start(
         log_volume=log_volume,
     )
     if ok:
-        sess.stream_url = config.stream_url_for_slot(sess.slot, sess.kind)
+        sess.stream_url = config.vtuber_url_for_slot(sess.slot, sess.kind)
         sess.livestream_status = "on"
     else:
         sess.livestream_status = "error"

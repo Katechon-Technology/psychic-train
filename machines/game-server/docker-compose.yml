@@ -48,6 +48,8 @@ services:
       - redis_data:/data
 
   broker:
+    build:
+      context: /opt/psychic-train/packages/broker
     image: ${IMAGE_REGISTRY:-}psychic-train-broker:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on: [postgres, redis]
@@ -81,6 +83,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   frontend:
+    build:
+      context: /opt/psychic-train/packages/frontend
     image: ${IMAGE_REGISTRY:-}psychic-train-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on: [broker]

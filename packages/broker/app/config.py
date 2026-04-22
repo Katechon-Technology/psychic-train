@@ -28,6 +28,7 @@ class Config:
 
     # Streaming endpoint (port-based routing for dev, subdomain for prod if STREAM_DOMAIN set)
     STREAM_BASE_PORT = int(os.getenv("STREAM_BASE_PORT", "3003"))
+    VTUBER_BASE_PORT = int(os.getenv("VTUBER_BASE_PORT", "3053"))
     STREAM_SCHEME = os.getenv("STREAM_SCHEME", "http")
     STREAM_PUBLIC_HOST = os.getenv("STREAM_PUBLIC_HOST", "localhost")
     STREAM_DOMAIN = os.getenv("STREAM_DOMAIN", "")
@@ -58,6 +59,14 @@ class Config:
         if cls.STREAM_DOMAIN:
             return f"{cls.STREAM_SCHEME}://{kind}{slot}.{cls.STREAM_DOMAIN}/"
         port = cls.STREAM_BASE_PORT + slot
+        return f"{cls.STREAM_SCHEME}://{cls.STREAM_PUBLIC_HOST}:{port}/"
+
+    @classmethod
+    def vtuber_url_for_slot(cls, slot: int, kind: str) -> str:
+        """Public URL for the vtuber overlay HLS for this slot."""
+        if cls.STREAM_DOMAIN:
+            return f"{cls.STREAM_SCHEME}://vtuber-{kind}{slot}.{cls.STREAM_DOMAIN}/"
+        port = cls.VTUBER_BASE_PORT + slot
         return f"{cls.STREAM_SCHEME}://{cls.STREAM_PUBLIC_HOST}:{port}/"
 
 

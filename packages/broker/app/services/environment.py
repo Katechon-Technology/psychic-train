@@ -102,11 +102,10 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
                     m.environment.healthcheck, ctx, _env_container_name(kind, slot)
                 )
 
-        # 2. Plugin stream-client.
-        #
-        # When narration is enabled the stream-client stays private (no host
-        # port) — the vtuber overlay will own the public port once the user
-        # clicks "Start VTuber". stream_url stays null until then.
+        # 2. Plugin stream-client — always published on STREAM_BASE_PORT + slot.
+        # The vtuber overlay (when started later) gets VTUBER_BASE_PORT + slot
+        # and session.stream_url is updated to point at it; stopping the vtuber
+        # reverts stream_url back here.
         #
         # For combined topology in two-server prod (STREAM_AGENT_URL set), the
         # stream-client runs on the stream server while the agent runs on the
@@ -130,15 +129,9 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
                 ctx[f"{p.name}_port"] = str(p.base + slot)
                 ctx[f"{p.name}_internal"] = str(p.base + slot)
 
-        if narration_on:
-            await streaming_svc.spawn_stream_client(
-                kind, slot, m, ctx, publish_host_port=False, extra_ports=extra_ports,
-            )
-            plugin_stream_url = None
-        else:
-            plugin_stream_url = await streaming_svc.spawn_stream_client(
-                kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
-            )
+        plugin_stream_url = await streaming_svc.spawn_stream_client(
+            kind, slot, m, ctx, publish_host_port=True, extra_ports=extra_ports,
+        )
 
         # 3. Ready for viewers. Status=waiting; no worker, no overlay.
         async with async_session_factory() as db:

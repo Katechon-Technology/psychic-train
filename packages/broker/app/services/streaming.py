@@ -244,7 +244,7 @@ async def start_livestream(
     Returns (ok, message)."""
     container_name = f"vtuber-{kind}-{slot}"
     plugin_stream_container = f"stream-client-{kind}-{slot}"
-    host_port = config.STREAM_BASE_PORT + slot
+    host_port = config.VTUBER_BASE_PORT + slot
 
     # Ensure log volume exists (worker may not have started yet).
     await _ensure_volume_local(log_volume)
