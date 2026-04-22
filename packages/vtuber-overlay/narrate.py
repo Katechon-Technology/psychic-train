@@ -56,7 +56,7 @@ BASE_MAX_PAUSE = int(os.environ.get("MAX_PAUSE", "30"))
 
 MEMORY_WINDOW = 10
 LOG_POLL_SECONDS = 0.2   # how often to check for new JSONL lines while narrating
-WAIT_FOR_LOG_SECONDS = 120  # how long to wait for the log file to appear at startup
+WAIT_FOR_LOG_SECONDS = 0    # unused — narrator now waits indefinitely
 
 MOOD_PROMPTS = {
     "hyped": "You're feeling great right now. Confident, pumped, maybe a little cocky. Celebrate wins.",
@@ -157,12 +157,11 @@ def _parse_mood_hints(hints: str) -> tuple[list[str], list[str]]:
 
 
 def has_viewers() -> bool:
-    try:
-        req = urllib.request.Request(SPEAK_STATUS_URL, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=5) as r:
-            return json.loads(r.read()).get("clients", 0) > 0
-    except Exception:
-        return True  # fail open: narrate if status unknown
+    # Always narrate — the kiosk Chromium inside this container is the viewer.
+    # The /api/speak/status clients count reflects WebSocket connections to the
+    # avatar server, but our Chromium may not always show as connected even when
+    # the avatar is rendering. Gating on clients==0 caused silent skips.
+    return True
 
 
 def speak(text: str) -> None:
@@ -273,18 +272,21 @@ def tangent(state: NarrationState) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _wait_for_log() -> "file|None":
-    """Block until the JSONL file exists (or give up). Returns an open file handle
-    seeked to the end, or None on timeout."""
-    deadline = time.monotonic() + WAIT_FOR_LOG_SECONDS
-    while time.monotonic() < deadline:
+def _wait_for_log():
+    """Block indefinitely until the JSONL file appears. Returns an open file handle
+    seeked to the end. Never returns None — the agent may start long after the
+    vtuber spawns (user clicks Start Worker manually)."""
+    printed = False
+    while True:
         if os.path.exists(LOG_PATH):
             f = open(LOG_PATH, "r", encoding="utf-8", errors="replace")
-            f.seek(0, 2)  # seek to end — we only care about new events
+            f.seek(0, 2)  # seek to end — only care about new events
+            print(f"  log file found: {LOG_PATH}")
             return f
-        time.sleep(1)
-    print(f"  [warn] log {LOG_PATH} didn't appear in {WAIT_FOR_LOG_SECONDS}s", file=sys.stderr)
-    return None
+        if not printed:
+            print(f"  waiting for log file: {LOG_PATH} (will retry every 5s...)")
+            printed = True
+        time.sleep(5)
 
 
 def _read_new_events(fh) -> list[dict]:
