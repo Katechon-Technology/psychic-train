@@ -19,6 +19,7 @@ agent:
   env:
     SESSION_ID: "{session_id}"
     BROKER_URL: "{broker_url}"
+    BROKER_API_KEY: "{broker_api_key}"
     ENV_HOST: "{env_host}"
     API_PORT: "{api_internal}"
     ANTHROPIC_API_KEY: "{anthropic_api_key}"

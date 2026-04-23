@@ -15,10 +15,12 @@
       width: 1920px; height: 1080px; z-index: 1; object-fit: contain; background: #000;
     }
 
-    /* Avatar iframe — bottom right, partially off-screen for the Live2D crop. */
+    /* Avatar iframe — head peeks up from bottom-right corner.
+       75% of the 1080px container is pushed below the viewport,
+       leaving 270px visible. scale(2.5) zooms into the head. */
     #avatar-container {
       position: absolute;
-      bottom: 0; right: -100px;
+      bottom: -810px; right: 20px;
       width: 600px; height: 1080px;
       overflow: hidden;
       z-index: 10;
@@ -27,7 +29,7 @@
     #avatar-frame {
       width: 600px; height: 600px;
       border: none;
-      transform: scale(2);
+      transform: scale(2.5);
       transform-origin: top center;
     }
   </style>

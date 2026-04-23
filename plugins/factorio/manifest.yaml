@@ -28,6 +28,7 @@ agent:
     SESSION_ID: "{session_id}"
     BROKER_URL: "{broker_url}"
     BROKER_API_KEY: "{broker_api_key}"
+    BROKER_API_KEY: "{broker_api_key}"
     ENV_HOST: "{env_host}"
     RCON_PORT: "{rcon_internal}"
     RCON_PASSWORD: "{rcon_password}"
