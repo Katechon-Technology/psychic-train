@@ -15,22 +15,22 @@
       width: 1920px; height: 1080px; z-index: 1; object-fit: contain; background: #000;
     }
 
-    /* Avatar iframe — head peeks up from bottom-right corner.
-       75% of the 1080px container is pushed below the viewport,
-       leaving 270px visible. scale(2.5) zooms into the head. */
+    /* Avatar iframe — a simple bottom-right rectangle. All the
+       "only the head pokes up" positioning is done inside embed.html
+       with a CSS transform on the Live2D <canvas> so the model
+       itself — not this iframe — is what's positioned. */
     #avatar-container {
       position: absolute;
-      bottom: -810px; right: 20px;
-      width: 600px; height: 1080px;
+      bottom: 0; right: 20px;
+      width: 600px; height: 400px;
       overflow: hidden;
       z-index: 10;
       pointer-events: none;
     }
     #avatar-frame {
-      width: 600px; height: 600px;
+      width: 100%; height: 100%;
       border: none;
-      transform: scale(2.5);
-      transform-origin: top center;
+      background: transparent;
     }
   </style>
   <script src="/hls.min.js"></script>
