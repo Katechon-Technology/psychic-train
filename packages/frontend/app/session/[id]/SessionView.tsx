@@ -120,7 +120,7 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
             livestream: {session.livestream_status}
           </span>
         )}
-        {previewReady && (
+        {session && (
           <button
             onClick={endSession}
             disabled={ending}

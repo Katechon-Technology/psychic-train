@@ -11,8 +11,17 @@
 		on_demand
 	}
 
-	@hasMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
-	handle @hasMatch {
+	# Order matters: vtuber-<kind><slot>.<domain> must match BEFORE the
+	# generic stream-client rule, because the generic lazy regex would
+	# otherwise capture `vtuber-<kind>` as group 1 and route to a
+	# nonexistent `stream-client-vtuber-<kind>-<slot>` container.
+	@vtuberMatch header_regexp host Host ^vtuber-([a-z0-9-]+?)([0-9]+)\.
+	handle @vtuberMatch {
+		reverse_proxy vtuber-{re.host.1}-{re.host.2}:3000
+	}
+
+	@streamMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
+	handle @streamMatch {
 		reverse_proxy stream-client-{re.host.1}-{re.host.2}:3000
 	}
 }
