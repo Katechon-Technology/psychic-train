@@ -18,22 +18,25 @@ from anthropic import Anthropic
 
 SESSION_ID = os.environ["SESSION_ID"]
 BROKER_URL = os.environ["BROKER_URL"]
+BROKER_API_KEY = os.environ.get("BROKER_API_KEY", "")
 ENV_HOST = os.environ["ENV_HOST"]
 RCON_PORT = int(os.environ["RCON_PORT"])
 RCON_PASSWORD = os.environ["RCON_PASSWORD"]
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 MODEL = os.environ.get("MODEL", "claude-sonnet-4-5-20250929")
 
-# Shared-volume JSONL log the narrator (vtuber-overlay) tails. Safe no-op when the
-# directory isn't mounted (narration disabled for this kind).
-LOG_PATH = os.environ.get("SESSION_LOG_PATH", "/var/log/session/agent.jsonl")
-
 
 def log(kind: str, **fields) -> None:
+    import urllib.request
+    event = json.dumps({"t": time.time(), "kind": kind, **fields}, default=str).encode()
+    req = urllib.request.Request(
+        f"{BROKER_URL}/api/sessions/{SESSION_ID}/events",
+        data=event,
+        headers={"Content-Type": "application/json",
+                 **({"Authorization": f"Bearer {BROKER_API_KEY}"} if BROKER_API_KEY else {})},
+    )
     try:
-        os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"t": time.time(), "kind": kind, **fields}, default=str) + "\n")
+        urllib.request.urlopen(req, timeout=5)
     except Exception:
         pass
 

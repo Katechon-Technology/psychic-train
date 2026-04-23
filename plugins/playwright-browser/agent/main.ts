@@ -6,8 +6,6 @@
 // MAX_STEPS.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 
 const {
   ENV_HOST,
@@ -16,7 +14,8 @@ const {
   MODEL = "claude-sonnet-4-5-20250929",
   INITIAL_GOAL = "Browse wikipedia.org for a minute.",
   SESSION_ID = "unknown",
-  SESSION_LOG_PATH = "/var/log/session/agent.jsonl",
+  BROKER_URL = "http://broker:8080",
+  BROKER_API_KEY = "",
 } = process.env;
 
 if (!ENV_HOST || !API_PORT || !ANTHROPIC_API_KEY) {
@@ -27,18 +26,16 @@ if (!ENV_HOST || !API_PORT || !ANTHROPIC_API_KEY) {
 const BASE = `http://${ENV_HOST}:${API_PORT}`;
 const MAX_STEPS = 40;
 
-// Shared-volume JSONL log the narrator tails. Safe no-op if the directory isn't
-// mounted (narration disabled for this kind).
 function log(kind: string, fields: Record<string, unknown> = {}): void {
-  try {
-    mkdirSync(dirname(SESSION_LOG_PATH), { recursive: true });
-    appendFileSync(
-      SESSION_LOG_PATH,
-      JSON.stringify({ t: Date.now() / 1000, kind, ...fields }) + "\n",
-    );
-  } catch {
-    // ignore
-  }
+  const event = { t: Date.now() / 1000, kind, ...fields };
+  fetch(`${BROKER_URL}/api/sessions/${SESSION_ID}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(BROKER_API_KEY ? { Authorization: `Bearer ${BROKER_API_KEY}` } : {}),
+    },
+    body: JSON.stringify(event),
+  }).catch(() => {});
 }
 
 type ToolResult = { ok: boolean; data?: any; error?: string };

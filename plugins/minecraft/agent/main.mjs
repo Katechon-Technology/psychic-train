@@ -1,7 +1,5 @@
 import mineflayer from "mineflayer";
 import Anthropic from "@anthropic-ai/sdk";
-import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
 
 const {
   ENV_HOST,
@@ -11,7 +9,8 @@ const {
   USERNAME = "ClaudeBot",
   VIEWER_USERNAME = "Spectator",
   SESSION_ID = "unknown",
-  SESSION_LOG_PATH = "/var/log/session/agent.jsonl",
+  BROKER_URL = "http://broker:8080",
+  BROKER_API_KEY = "",
 } = process.env;
 
 if (!ENV_HOST || !ANTHROPIC_API_KEY) {
@@ -20,15 +19,15 @@ if (!ENV_HOST || !ANTHROPIC_API_KEY) {
 }
 
 function log(kind, fields = {}) {
-  try {
-    mkdirSync(dirname(SESSION_LOG_PATH), { recursive: true });
-    appendFileSync(
-      SESSION_LOG_PATH,
-      JSON.stringify({ t: Date.now() / 1000, kind, ...fields }) + "\n",
-    );
-  } catch {
-    // ignore
-  }
+  const event = { t: Date.now() / 1000, kind, ...fields };
+  fetch(`${BROKER_URL}/api/sessions/${SESSION_ID}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(BROKER_API_KEY ? { Authorization: `Bearer ${BROKER_API_KEY}` } : {}),
+    },
+    body: JSON.stringify(event),
+  }).catch(() => {});  // fire-and-forget; never block the agent
 }
 
 function createBot() {

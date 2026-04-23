@@ -2,20 +2,9 @@
 """
 psychic-train narrator sidecar.
 
-Tails /var/log/session/agent.jsonl (written by the plugin's agent container) and
-speaks first-person commentary via the Open-LLM-VTuber `/api/speak` endpoint.
-
-Ported from claudetorio/packages/vtuber-stream-client/narrate.py. Kept:
-  - mood system (chill / hyped / frustrated / thinking / philosophical)
-  - pacing ranges per mood
-  - 10-line memory window
-  - idle + philosophical variation logic
-  - speak() via POST /api/speak, has_viewers() via /api/speak/status
-
-Changed:
-  - Run discovery + step polling  →  JSONL tail on a local file
-  - Hardcoded Factorio system prompt  →  NARRATION_SYSTEM_PROMPT env
-  - Score-based mood triggers  →  JSONL-kind-based triggers from NARRATION_MOOD_HINTS
+Polls GET /api/sessions/{id}/events from the broker (works across the
+game-server / stream-server split) and speaks first-person commentary via
+the Open-LLM-VTuber /api/speak endpoint.
 """
 
 import json
@@ -34,14 +23,13 @@ from collections import deque
 
 AVATAR_URL = os.environ.get("AVATAR_URL", "http://localhost:12393")
 SPEAK_URL = f"{AVATAR_URL}/api/speak"
-SPEAK_STATUS_URL = f"{AVATAR_URL}/api/speak/status"
+
+BROKER_URL = os.environ.get("BROKER_URL", "http://broker:8080")
+SESSION_ID = os.environ.get("SESSION_ID", "")
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 NARRATION_MODEL = os.environ.get("NARRATION_MODEL", "claude-haiku-4-5-20251001")
 
-LOG_PATH = os.environ.get("NARRATION_LOG_PATH", "/var/log/session/agent.jsonl")
-
-# Fallback prompt used only when NARRATION_SYSTEM_PROMPT is empty.
 DEFAULT_SYSTEM_PROMPT = (
     "You ARE an AI agent doing a task live on stream. First-person inner monologue, "
     "1-3 sentences, punchy, real reactions, no cringe."
@@ -55,8 +43,7 @@ BASE_MIN_PAUSE = int(os.environ.get("MIN_PAUSE", "10"))
 BASE_MAX_PAUSE = int(os.environ.get("MAX_PAUSE", "30"))
 
 MEMORY_WINDOW = 10
-LOG_POLL_SECONDS = 0.2   # how often to check for new JSONL lines while narrating
-WAIT_FOR_LOG_SECONDS = 0    # unused — narrator now waits indefinitely
+POLL_INTERVAL = 2.0   # seconds between broker event polls during a pause
 
 MOOD_PROMPTS = {
     "hyped": "You're feeling great right now. Confident, pumped, maybe a little cocky. Celebrate wins.",
@@ -77,7 +64,6 @@ class NarrationState:
         self.consecutive_errors: int = 0
         self.total_errors: int = 0
         self.events_seen: int = 0
-        self.milestones_hit: int = 0
         self.mood: str = "chill"
         self._hyped_triggers, self._frustrated_triggers = _parse_mood_hints(NARRATION_MOOD_HINTS)
 
@@ -97,14 +83,11 @@ class NarrationState:
                 self.total_errors += 1
             if any(re.search(p, kind) for p in self._hyped_triggers) or e.get("milestone"):
                 batch_milestones += 1
-        self.milestones_hit += batch_milestones
-
+        self.mood = self._pick_mood(batch_errors, batch_milestones)
         if batch_errors > 0:
             self.consecutive_errors += batch_errors
         else:
             self.consecutive_errors = 0
-
-        self.mood = self._pick_mood(batch_errors, batch_milestones)
 
     def _pick_mood(self, errors: int, milestones: int) -> str:
         if self.consecutive_errors >= 3:
@@ -130,12 +113,6 @@ class NarrationState:
 
 
 def _parse_mood_hints(hints: str) -> tuple[list[str], list[str]]:
-    """Extract regex patterns from NARRATION_MOOD_HINTS lines like:
-        kind="placed_entity" ⇒ hyped.
-        kind="rcon_error"    ⇒ frustrated; own it.
-    Simple best-effort parser; if parsing fails we just return empty lists and mood
-    stays driven by built-in heuristics.
-    """
     hyped, frustrated = [], []
     if not hints:
         return hyped, frustrated
@@ -152,22 +129,26 @@ def _parse_mood_hints(hints: str) -> tuple[list[str], list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# Avatar / Claude HTTP helpers (stdlib only)
+# Broker event polling
 # ---------------------------------------------------------------------------
 
 
-def has_viewers() -> bool:
-    # Always narrate — the kiosk Chromium inside this container is the viewer.
-    # The /api/speak/status clients count reflects WebSocket connections to the
-    # avatar server, but our Chromium may not always show as connected even when
-    # the avatar is rendering. Gating on clients==0 caused silent skips.
-    return True
+def fetch_events(after_id: int, limit: int = 50) -> list[dict]:
+    url = f"{BROKER_URL}/api/sessions/{SESSION_ID}/events?after={after_id}&limit={limit}"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        print(f"  [warn] fetch_events failed: {e}", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Avatar / Claude HTTP helpers
+# ---------------------------------------------------------------------------
 
 
 def speak(text: str) -> None:
-    if not has_viewers():
-        print(f'  [skip] no viewers: "{text[:60]}"')
-        return
     try:
         payload = json.dumps({"text": text}).encode()
         req = urllib.request.Request(SPEAK_URL, data=payload,
@@ -204,12 +185,12 @@ def call_claude(system: str, messages: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Narration building blocks
+# Narration helpers
 # ---------------------------------------------------------------------------
 
 
 def system_with_mood(mood: str) -> str:
-    parts = [NARRATION_SYSTEM_PROMPT, "", f"## Current mood", MOOD_PROMPTS.get(mood, MOOD_PROMPTS["chill"])]
+    parts = [NARRATION_SYSTEM_PROMPT, "", "## Current mood", MOOD_PROMPTS.get(mood, MOOD_PROMPTS["chill"])]
     if NARRATION_MOOD_HINTS:
         parts += ["", "## Mood hints for this plugin", NARRATION_MOOD_HINTS]
     return "\n".join(parts)
@@ -226,7 +207,7 @@ def build_messages(state: NarrationState, user_msg: str) -> list[dict]:
 
 def _summarize_events(events: list[dict]) -> str:
     out = []
-    for e in events[-5:]:  # cap to last 5 to keep prompt small
+    for e in events[-5:]:
         snippet = json.dumps(e, default=str)
         if len(snippet) > 400:
             snippet = snippet[:400] + "…"
@@ -258,55 +239,13 @@ TANGENT_PROMPTS = [
 
 
 def idle_thought(state: NarrationState) -> str:
-    user = random.choice(IDLE_PROMPTS) + " 1-2 sentences."
-    return call_claude(system_with_mood(state.mood), build_messages(state, user))
+    return call_claude(system_with_mood(state.mood),
+                       build_messages(state, random.choice(IDLE_PROMPTS) + " 1-2 sentences."))
 
 
 def tangent(state: NarrationState) -> str:
-    user = random.choice(TANGENT_PROMPTS) + " 1-2 sentences."
-    return call_claude(system_with_mood("philosophical"), build_messages(state, user))
-
-
-# ---------------------------------------------------------------------------
-# JSONL tailer
-# ---------------------------------------------------------------------------
-
-
-def _wait_for_log():
-    """Block indefinitely until the JSONL file appears. Returns an open file handle
-    seeked to the end. Never returns None — the agent may start long after the
-    vtuber spawns (user clicks Start Worker manually)."""
-    printed = False
-    while True:
-        if os.path.exists(LOG_PATH):
-            f = open(LOG_PATH, "r", encoding="utf-8", errors="replace")
-            f.seek(0, 2)  # seek to end — only care about new events
-            print(f"  log file found: {LOG_PATH}")
-            return f
-        if not printed:
-            print(f"  waiting for log file: {LOG_PATH} (will retry every 5s...)")
-            printed = True
-        time.sleep(5)
-
-
-def _read_new_events(fh) -> list[dict]:
-    """Read any newly-appended lines from the tailed file handle; return parsed JSON
-    objects. Skips unparsable lines."""
-    out: list[dict] = []
-    while True:
-        line = fh.readline()
-        if not line:
-            break
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except Exception:
-            # Tolerate garbage; include a synthetic event so the narrator can still
-            # react to unknown content.
-            out.append({"kind": "raw", "text": line[:500]})
-    return out
+    return call_claude(system_with_mood("philosophical"),
+                       build_messages(state, random.choice(TANGENT_PROMPTS) + " 1-2 sentences."))
 
 
 # ---------------------------------------------------------------------------
@@ -317,12 +256,17 @@ def _read_new_events(fh) -> list[dict]:
 def run() -> None:
     print("=" * 50)
     print("  psychic-train narrator")
-    print(f"  log:    {LOG_PATH}")
-    print(f"  avatar: {AVATAR_URL}")
-    print(f"  model:  {NARRATION_MODEL}")
+    print(f"  session: {SESSION_ID}")
+    print(f"  broker:  {BROKER_URL}")
+    print(f"  avatar:  {AVATAR_URL}")
+    print(f"  model:   {NARRATION_MODEL}")
     print("=" * 50)
 
-    # Wait for the avatar server
+    if not SESSION_ID:
+        print("  ERROR: SESSION_ID not set — narrator cannot poll events", file=sys.stderr)
+        return
+
+    # Wait for avatar server
     for i in range(60):
         try:
             with urllib.request.urlopen(f"{AVATAR_URL}/", timeout=5):
@@ -332,26 +276,11 @@ def run() -> None:
                 print("  [warn] avatar server not responding; continuing anyway")
             time.sleep(1)
 
-    # Wait for at least one WebSocket client (Chromium's embed.html) to connect.
-    # Without this the intro speak() is silently skipped because clients==0.
-    print("  waiting for browser WebSocket client...")
-    for i in range(60):
-        if has_viewers():
-            print(f"  browser connected ({i}s)")
-            break
-        if i == 59:
-            print("  [warn] no browser client after 60s; proceeding anyway")
-        time.sleep(1)
-
-    fh = _wait_for_log()
-    if fh is None:
-        print("  exiting — no log file to tail")
-        return
-
     state = NarrationState()
+    last_event_id = 0
     print("  entering narration loop\n")
 
-    # Short intro — fires even before the first event so viewers aren't in silence
+    # Intro — fires immediately (before any events arrive)
     try:
         intro = call_claude(
             system_with_mood("hyped"),
@@ -368,13 +297,16 @@ def run() -> None:
         pause = random.uniform(lo, hi)
         print(f"  ... pausing {pause:.1f}s (mood: {state.mood})")
 
-        # Sleep in small slices so we keep reading new JSONL lines as they arrive.
+        # Poll for new events in small slices throughout the pause window
         slept = 0.0
         buf: list[dict] = []
         while slept < pause:
-            buf.extend(_read_new_events(fh))
-            time.sleep(LOG_POLL_SECONDS)
-            slept += LOG_POLL_SECONDS
+            rows = fetch_events(after_id=last_event_id)
+            if rows:
+                last_event_id = rows[-1]["id"]
+                buf.extend(r["event"] for r in rows)
+            time.sleep(POLL_INTERVAL)
+            slept += POLL_INTERVAL
 
         if buf:
             state.update_from_events(buf)
@@ -388,7 +320,6 @@ def run() -> None:
                 print(f"  [warn] commentary failed: {e}", file=sys.stderr)
             continue
 
-        # No events in this window — decide whether to fill silence
         roll = random.random()
         try:
             if roll < 0.15:

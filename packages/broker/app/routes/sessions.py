@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import config
 from ..dependencies import get_app_state, get_db, require_admin_key
-from ..models import Session
+from ..models import Session, SessionEvent
 from ..schemas import CreateSessionRequest, SessionInfo, StartWorkerRequest
 from ..services import environment as env_svc
 from ..services import slots as slots_svc
@@ -180,13 +180,11 @@ async def livestream_start(
 
     # start_livestream now SPAWNS the vtuber overlay (it didn't exist at
     # session-creation time) and then kicks off the RTMP side-car inside it.
-    log_volume = f"session-logs-{sess.id}"
     ok, msg = await streaming_svc.start_livestream(
         kind=sess.kind,
         slot=sess.slot,
         session_id=sess.id,
         narration=m.narration,
-        log_volume=log_volume,
     )
     if ok:
         sess.stream_url = config.vtuber_url_for_slot(sess.slot, sess.kind)
@@ -219,3 +217,35 @@ async def livestream_stop(
     if not ok:
         raise HTTPException(500, f"stop-rtmp failed: {msg}")
     return {"ok": True, "livestream_status": sess.livestream_status, "output": msg}
+
+
+# ---------------------------------------------------------------------------
+# Session events — agent POSTs here; narrator GETs here (works across servers)
+# ---------------------------------------------------------------------------
+
+@router.post("/{session_id}/events", dependencies=[Depends(require_admin_key)])
+async def post_event(
+    session_id: str,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    db.add(SessionEvent(session_id=session_id, event=payload))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.get("/{session_id}/events")
+async def get_events(
+    session_id: str,
+    after: int = 0,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(SessionEvent)
+        .where(SessionEvent.session_id == session_id, SessionEvent.id > after)
+        .order_by(SessionEvent.id)
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    return [{"id": r.id, "event": r.event} for r in rows]

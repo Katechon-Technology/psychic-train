@@ -131,7 +131,6 @@ async def spawn_vtuber_overlay(
     session_id: str,
     narration: Any,
     plugin_stream_container: str,
-    log_volume: str,
     host_port: int | None = None,
 ) -> None:
     """Spawn vtuber-{kind}-{slot}. Called by start_livestream when the user
@@ -142,6 +141,7 @@ async def spawn_vtuber_overlay(
 
     env = {
         "SESSION_ID": session_id,
+        "BROKER_URL": config.BROKER_URL,
         "SOURCE_STREAM_URL": source_url,
         "CHARACTER_NAME": narration.character_name,
         "LIVE2D_MODEL": narration.live2d_model,
@@ -155,15 +155,10 @@ async def spawn_vtuber_overlay(
         "TWITCH_STREAM_KEY": config.TWITCH_STREAM_KEY,
         "KICK_STREAM_KEY": config.KICK_STREAM_KEY,
     }
-    volumes = [{"name": log_volume, "mount": "/var/log/session", "readonly": True}]
+    volumes = []
 
     if config.STREAM_AGENT_URL:
         async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{config.STREAM_AGENT_URL}/volumes/{log_volume}",
-                headers={"X-Stream-Agent-Key": config.STREAM_AGENT_KEY},
-                timeout=30.0,
-            )
             r = await client.post(
                 f"{config.STREAM_AGENT_URL}/spawn/vtuber-overlay",
                 json={
@@ -237,7 +232,6 @@ async def start_livestream(
     slot: int,
     session_id: str,
     narration: Any,
-    log_volume: str,
 ) -> tuple[bool, str]:
     """Spawn vtuber overlay with a public host port. RTMP side-car is started
     only if stream keys are configured; failure there is non-fatal.
@@ -245,9 +239,6 @@ async def start_livestream(
     container_name = f"vtuber-{kind}-{slot}"
     plugin_stream_container = f"stream-client-{kind}-{slot}"
     host_port = config.VTUBER_BASE_PORT + slot
-
-    # Ensure log volume exists (worker may not have started yet).
-    await _ensure_volume_local(log_volume)
 
     # Spawn vtuber overlay (idempotent — docker rm -f's any stale container).
     try:
@@ -257,7 +248,6 @@ async def start_livestream(
             session_id=session_id,
             narration=narration,
             plugin_stream_container=plugin_stream_container,
-            log_volume=log_volume,
             host_port=host_port,
         )
     except Exception as e:

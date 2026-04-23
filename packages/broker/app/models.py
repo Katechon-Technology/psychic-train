@@ -8,6 +8,15 @@ class Base(DeclarativeBase):
     pass
 
 
+class SessionEvent(Base):
+    __tablename__ = "session_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String, nullable=False, index=True)
+    event = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
 class Session(Base):
     __tablename__ = "sessions"
 

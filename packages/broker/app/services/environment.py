@@ -157,8 +157,6 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
         await streaming_svc.stop_stream_client(kind, slot)
         if m.topology == "separate":
             await _docker_stop(_env_container_name(kind, slot))
-        if narration_on:
-            await _docker_volume_rm(_log_volume_name(session_id))
         await slots_svc.release_slot(kind, slot, app_state.redis)
 
 
@@ -205,20 +203,11 @@ async def start_worker(
         if model:
             ctx["model"] = model
 
-        agent_volumes: list[dict[str, Any]] = []
-        if narration_on:
-            # Volume is lazily created — not at session spawn anymore since the
-            # vtuber isn't spawned then either. Harmless if it already exists.
-            await _docker_volume_create(_log_volume_name(session_id))
-            agent_volumes.append(
-                {"name": _log_volume_name(session_id), "mount": "/var/log/session", "readonly": False}
-            )
-
         await _docker_run(
             name=_agent_container_name(session_id),
             image=m.agent.image,
             env=manifest_svc.interpolate_env(m.agent.env, ctx),
-            volumes=agent_volumes,
+            volumes=[],
             remove=True,
         )
 
@@ -320,9 +309,6 @@ async def teardown_session(
         if m and m.topology == "separate":
             await _docker_stop(_env_container_name(kind, slot))
         await slots_svc.release_slot(kind, slot, app_state.redis)
-
-    if narration_on:
-        await _docker_volume_rm(_log_volume_name(session_id))
 
     if sess:
         sess.status = "completed"

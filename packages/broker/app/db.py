@@ -25,6 +25,20 @@ async def init_db():
             "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS "
             "worker_status VARCHAR NOT NULL DEFAULT 'off'"
         ))
+        # session_events table — created by create_all above on first run;
+        # this is a no-op on existing DBs that already have it.
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS session_events (
+                id SERIAL PRIMARY KEY,
+                session_id VARCHAR NOT NULL,
+                event JSONB NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        """))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_session_events_session_id "
+            "ON session_events (session_id)"
+        ))
 
 
 async def close_db():
