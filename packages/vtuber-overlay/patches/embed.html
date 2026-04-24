@@ -47,10 +47,20 @@
         display: none !important;
       }
 
-      /* Make sure canvas itself is transparent and visible */
+      /* Avatar framing. The Live2D canvas is sized, scaled, and pushed
+         below the iframe bottom so only the top of the model (the head)
+         pokes up inside wrapper.html's bottom-right container. Values
+         tuned live in DevTools against a 600x400 outer iframe. */
       canvas {
         background: transparent !important;
         background-color: transparent !important;
+        width: 675.2px !important;
+        height: 716px !important;
+        position: absolute !important;
+        left: 20px !important;
+        bottom: -420px !important;
+        overflow: hidden !important;
+        transform: scale(1.5) !important;
       }
     </style>
   </head>
