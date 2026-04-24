@@ -18,24 +18,6 @@
         --colors-gray-700: transparent !important;
       }
 
-      /* ---- Avatar framing knobs (tune these) --------------------------
-         The outer wrapper.html embeds this page in a small bottom-right
-         iframe and relies on us to make the Live2D model render such that
-         only its head pokes up from the bottom. We do that by scaling the
-         <canvas> up and translating it down: the model is drawn centered
-         in the canvas, so pushing the canvas down past the iframe bottom
-         leaves only the top of the model (the head) visible.
-
-         --avatar-scale  — how much to upscale the canvas (bigger head).
-         --avatar-shift  — how much to push the canvas down, in units of
-                           post-scale canvas height. 0 = head centered,
-                           50% = head near bottom, 80% = only forehead.
-      */
-      :root {
-        --avatar-scale: 2;
-        --avatar-shift: 55%;
-      }
-
       html, body, #root {
         background: transparent !important;
         background-color: transparent !important;
@@ -65,18 +47,10 @@
         display: none !important;
       }
 
-      /* Live2D canvas: fill the iframe, then scale+shift so the model's
-         head is what ends up in the visible region. */
+      /* Make sure canvas itself is transparent and visible */
       canvas {
         background: transparent !important;
         background-color: transparent !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        transform: scale(var(--avatar-scale)) translateY(var(--avatar-shift)) !important;
-        transform-origin: top center !important;
       }
     </style>
   </head>
