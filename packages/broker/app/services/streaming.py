@@ -152,8 +152,7 @@ async def spawn_vtuber_overlay(
         "NARRATION_MODEL": config.NARRATION_MODEL,
         "ANTHROPIC_API_KEY": config.ANTHROPIC_API_KEY,
         "ELEVENLABS_API_KEY": config.ELEVENLABS_API_KEY,
-        "TWITCH_STREAM_KEY": config.TWITCH_STREAM_KEY,
-        "KICK_STREAM_KEY": config.KICK_STREAM_KEY,
+        "YOUTUBE_STREAM_KEY": config.YOUTUBE_STREAM_KEY,
     }
     volumes = []
 

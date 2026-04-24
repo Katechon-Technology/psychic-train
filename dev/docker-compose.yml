@@ -77,8 +77,7 @@ services:
       VTUBER_OVERLAY_IMAGE: psychic-train/vtuber-overlay:latest
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
-      TWITCH_STREAM_KEY: ${TWITCH_STREAM_KEY:-}
-      KICK_STREAM_KEY: ${KICK_STREAM_KEY:-}
+      YOUTUBE_STREAM_KEY: ${YOUTUBE_STREAM_KEY:-}
       GAME_SERVER_PUBLIC_HOST: ${GAME_SERVER_PUBLIC_HOST:-}
     volumes:
       - ../plugins:/plugins:ro

@@ -8,8 +8,8 @@ pipeline is unchanged (same Open-LLM-VTuber commit, same patches, same Live2D mo
 Key differences:
 
 - Sources the HLS to overlay from `$SOURCE_STREAM_URL` (plugin's docker-internal URL).
-- RTMP outputs are **additive** — `TWITCH_STREAM_KEY` / `KICK_STREAM_KEY` are optional.
-  HLS is always produced so viewers get a stream regardless.
+- RTMP output is **additive** — `YOUTUBE_STREAM_KEY` is optional. HLS is always
+  produced so viewers get a stream regardless.
 - Narration reads from a shared-volume JSONL log at
   `/var/log/session/agent.jsonl` instead of polling the broker.
 - `CHARACTER_NAME`, `LIVE2D_MODEL`, `VOICE_ID`, `PERSONA_PROMPT`,
@@ -30,8 +30,7 @@ Key differences:
 | `NARRATION_SYSTEM_PROMPT` | no | generic | The narrator's Claude system prompt |
 | `NARRATION_MOOD_HINTS` | no | `` | Extra mood-trigger guidance for the narrator |
 | `NARRATION_MODEL` | no | `claude-haiku-4-5-20251001` | Model for narration messages |
-| `TWITCH_STREAM_KEY` | no | — | If set, FFmpeg also pushes RTMP to Twitch |
-| `KICK_STREAM_KEY` | no | — | If set, FFmpeg also pushes RTMP to Kick |
+| `YOUTUBE_STREAM_KEY` | no | — | If set, FFmpeg also pushes RTMP to YouTube Live (`rtmp://a.rtmp.youtube.com/live2/${key}`) |
 | `DISPLAY_WIDTH` / `DISPLAY_HEIGHT` / `DISPLAY_FPS` | no | 1920/1080/30 | Output resolution/framerate |
 
 ## Volume mounts

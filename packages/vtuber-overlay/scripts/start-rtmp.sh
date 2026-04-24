@@ -1,6 +1,6 @@
 #!/bin/bash
 # Starts an RTMP fan-out FFmpeg that reads this container's own HLS output
-# (served by nginx on localhost:3000) and pushes to Twitch/Kick. Uses `-vcodec
+# (served by nginx on localhost:3000) and pushes to YouTube. Uses `-vcodec
 # copy` so there's no re-encoding cost — the HLS stream is already H.264+AAC
 # from the main FFmpeg that composites avatar + source.
 #
@@ -14,11 +14,10 @@ if [ -f /tmp/rtmp.pid ] && kill -0 "$(cat /tmp/rtmp.pid)" 2>/dev/null; then
 fi
 
 OUTPUTS=()
-[ -n "${TWITCH_STREAM_KEY:-}" ] && OUTPUTS+=("rtmp://live.twitch.tv/app/${TWITCH_STREAM_KEY}")
-[ -n "${KICK_STREAM_KEY:-}" ]   && OUTPUTS+=("rtmps://fa723fc1b171.global-contribute.live-video.net/app/${KICK_STREAM_KEY}")
+[ -n "${YOUTUBE_STREAM_KEY:-}" ] && OUTPUTS+=("rtmp://a.rtmp.youtube.com/live2/${YOUTUBE_STREAM_KEY}")
 
 if [ ${#OUTPUTS[@]} -eq 0 ]; then
-    echo "No stream keys configured (TWITCH_STREAM_KEY / KICK_STREAM_KEY)" >&2
+    echo "No stream key configured (YOUTUBE_STREAM_KEY)" >&2
     exit 1
 fi
 

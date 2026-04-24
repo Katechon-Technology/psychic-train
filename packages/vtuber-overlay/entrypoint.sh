@@ -11,7 +11,7 @@
 # 6. Python HTTP server on :3001 serving wrapper.html + hls.js
 # 7. Chromium kiosk → http://localhost:3001/ → iframes the plugin HLS + avatar
 # 8. FFmpeg x11grab + PulseAudio → HLS at /tmp/hls/stream.m3u8
-#    (+ additive RTMP outputs if TWITCH_STREAM_KEY / KICK_STREAM_KEY are set)
+#    (+ additive RTMP output to YouTube if YOUTUBE_STREAM_KEY is set)
 # 9. nginx on :3000 serves /stream.m3u8 (same pattern as stream-client-base)
 
 set -euo pipefail

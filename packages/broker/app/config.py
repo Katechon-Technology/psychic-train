@@ -47,8 +47,7 @@ class Config:
     VTUBER_OVERLAY_IMAGE = os.getenv("VTUBER_OVERLAY_IMAGE", "psychic-train/vtuber-overlay:latest")
     ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
     NARRATION_MODEL = os.getenv("NARRATION_MODEL", "claude-haiku-4-5-20251001")
-    TWITCH_STREAM_KEY = os.getenv("TWITCH_STREAM_KEY", "")
-    KICK_STREAM_KEY = os.getenv("KICK_STREAM_KEY", "")
+    YOUTUBE_STREAM_KEY = os.getenv("YOUTUBE_STREAM_KEY", "")
 
     # Broker's externally visible URL (passed to agent containers so they can call back)
     BROKER_URL = os.getenv("BROKER_URL", "http://broker:8080")
