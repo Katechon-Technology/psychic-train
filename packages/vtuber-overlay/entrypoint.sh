@@ -4,22 +4,29 @@
 # 1. Xvfb on $DISPLAY_NUM (default :99 to avoid collision with :1 reserved for
 #    plugin stream-clients)
 # 2. PulseAudio + virtual_speaker null sink for TTS capture
-# 3. Render /wrapper.html via envsubst using $SOURCE_STREAM_URL (the plugin's
-#    internal HLS URL) — this page is what Chromium loads
+# 3. Render /wrapper.html via envsubst using $BROKER_URL — wrapper.html
+#    polls broker /api/stream/current-source for the live session URL and
+#    swaps hls.js source at runtime
 # 4. Open-LLM-VTuber server on :12393 with generated conf.yaml
-# 5. Narrator sidecar tailing /var/log/session/agent.jsonl
+# 5. Narrator sidecar polling broker for the active session
 # 6. Python HTTP server on :3001 serving wrapper.html + hls.js
-# 7. Chromium kiosk → http://localhost:3001/ → iframes the plugin HLS + avatar
+# 7. Chromium kiosk → http://localhost:3001/
 # 8. FFmpeg x11grab + PulseAudio → HLS at /tmp/hls/stream.m3u8
-#    (+ additive RTMP output to YouTube if YOUTUBE_STREAM_KEY is set)
 # 9. nginx on :3000 serves /stream.m3u8 (same pattern as stream-client-base)
+# 10. RTMP push to YouTube (if YOUTUBE_STREAM_KEY) — kicked off ONCE at
+#     boot and runs forever, regardless of which session is currently
+#     being overlaid.
 
 set -euo pipefail
 
 log() { echo "[vtuber-overlay] $*"; }
 fail() { echo "[vtuber-overlay] ERROR: $*" >&2; exit 1; }
 
-: "${SOURCE_STREAM_URL:?SOURCE_STREAM_URL is required — e.g. http://stream-client-factorio-0:3000/stream.m3u8}"
+# Persistent vtuber: SOURCE_STREAM_URL is no longer required at boot. The
+# wrapper.html polls $BROKER_URL/api/stream/current-source at runtime and
+# swaps hls.js source on session switches; RTMP to YouTube stays connected
+# the whole time.
+: "${BROKER_URL:?BROKER_URL is required — e.g. http://broker:8080}"
 
 DISPLAY_NUM="${DISPLAY_NUM:-:99}"
 DISPLAY_WIDTH="${DISPLAY_WIDTH:-1920}"
@@ -32,7 +39,7 @@ export CHARACTER_NAME="${CHARACTER_NAME:-Claude}"
 export LIVE2D_MODEL="${LIVE2D_MODEL:-mao_pro}"
 export VOICE_ID="${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}"
 export PERSONA_PROMPT="$(echo "${PERSONA_PROMPT:-You are an AI VTuber commentating on an autonomous AI agent. Be entertaining and concise.}" | tr '\n' ' ')"
-export FRONTEND_URL="${SOURCE_STREAM_URL}"
+export BROKER_URL
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 export ELEVENLABS_API_KEY="${ELEVENLABS_API_KEY:-}"
 
@@ -238,7 +245,19 @@ nginx
 
 log "=== vtuber-overlay ready: http://localhost:3000/stream.m3u8 ==="
 
-# ---------- 10. monitor ----------
+# ---------- 10. RTMP push (boot-time, persistent) ----------
+# YouTube ingest is one-shot: every reconnect requires a manual Go Live
+# (or "auto-start" which YouTube silently disables after each session).
+# Kicking the RTMP side-car ONCE at boot — and never stopping it — means
+# YouTube only needs Go Live one time, ever.
+if [ -n "${YOUTUBE_STREAM_KEY:-}" ]; then
+    log "kicking off RTMP push to YouTube..."
+    /scripts/start-rtmp.sh || log "WARNING: start-rtmp.sh exited non-zero (RTMP not running)"
+else
+    log "YOUTUBE_STREAM_KEY not set — skipping RTMP push (HLS preview only)"
+fi
+
+# ---------- 11. monitor ----------
 while true; do
     kill -0 "$XVFB_PID" 2>/dev/null   || { log "Xvfb died"; cleanup; exit 1; }
     kill -0 "$FFMPEG_PID" 2>/dev/null || { log "FFmpeg died"; cleanup; exit 1; }

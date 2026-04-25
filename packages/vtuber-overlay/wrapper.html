@@ -42,17 +42,57 @@
   </div>
 
   <script>
+    // Persistent vtuber design: this page is loaded ONCE at container boot
+    // and stays open forever. We poll the broker for which session is
+    // currently flagged livestream_status="on" and swap hls.js source on
+    // change. The main FFmpeg + RTMP downstream of this <video> element
+    // never restart — YouTube stays connected across session swaps.
+    const BROKER_URL = '${BROKER_URL}';
+    const POLL_MS = 3000;
+
     const v = document.getElementById('source-video');
-    const src = '${FRONTEND_URL}';
-    if (window.Hls && Hls.isSupported()) {
-      const hls = new Hls({ liveSyncDurationCount: 3, maxBufferLength: 20 });
-      hls.loadSource(src); hls.attachMedia(v);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(()=>{}));
-      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) setTimeout(() => hls.loadSource(src), 3000); });
-    } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
-      v.src = src;
-      v.addEventListener('loadedmetadata', () => v.play().catch(()=>{}));
+    let currentUrl = null;
+    let hls = null;
+
+    function setSource(url) {
+      if (url === currentUrl) return;
+      currentUrl = url;
+      console.log('[wrapper] swap source ->', url || '(none)');
+      if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+      v.removeAttribute('src');
+      v.load();
+      if (!url) return; // standby — leave the <video> blank for now
+
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ liveSyncDurationCount: 3, maxBufferLength: 20 });
+        hls.loadSource(url);
+        hls.attachMedia(v);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => v.play().catch(() => {}));
+        hls.on(Hls.Events.ERROR, (_, d) => {
+          if (d.fatal && currentUrl === url) {
+            console.warn('[wrapper] fatal hls error, retrying in 3s', d);
+            setTimeout(() => { if (currentUrl === url) { hls.loadSource(url); } }, 3000);
+          }
+        });
+      } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+        v.src = url;
+        v.addEventListener('loadedmetadata', () => v.play().catch(() => {}), { once: true });
+      }
     }
+
+    async function pollSource() {
+      try {
+        const r = await fetch(BROKER_URL.replace(/\/$/, '') + '/api/stream/current-source', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        setSource(data.url || null);
+      } catch (e) {
+        console.warn('[wrapper] poll failed', e);
+      }
+    }
+
+    pollSource();
+    setInterval(pollSource, POLL_MS);
 
     // Avatar iframe needs an enable-audio postMessage to unlock its AudioContext
     // (see patches/embed.html for the listener).

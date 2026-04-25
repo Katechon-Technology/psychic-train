@@ -153,7 +153,6 @@ async def spawn_session(session_id: str, kind: str, slot: int, app_state: AppSta
                 await db.commit()
         # Best-effort cleanup.
         await _docker_stop(_agent_container_name(session_id))
-        await streaming_svc.stop_vtuber_overlay(kind, slot)
         await streaming_svc.stop_stream_client(kind, slot)
         if m.topology == "separate":
             await _docker_stop(_env_container_name(kind, slot))
@@ -299,12 +298,9 @@ async def teardown_session(
         await db.commit()
 
     m = app_state.kinds.get(kind)
-    narration_on = bool(m and m.narration)
 
     await _docker_stop(_agent_container_name(session_id))
     if slot is not None:
-        if narration_on:
-            await streaming_svc.stop_vtuber_overlay(kind, slot)
         await streaming_svc.stop_stream_client(kind, slot)
         if m and m.topology == "separate":
             await _docker_stop(_env_container_name(kind, slot))

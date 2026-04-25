@@ -12,7 +12,6 @@ from ..models import Session, SessionEvent
 from ..schemas import CreateSessionRequest, SessionInfo, StartWorkerRequest
 from ..services import environment as env_svc
 from ..services import slots as slots_svc
-from ..services import streaming as streaming_svc
 from ..state import AppState
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -154,69 +153,52 @@ async def worker_stop(
     return SessionInfo.model_validate(sess)
 
 
-# ---- Livestream (RTMP) -----------------------------------------------------
+# ---- Livestream — pointer flip only ---------------------------------------
+# The persistent vtuber-overlay container polls /api/stream/current-source and
+# overlays whichever session is currently flagged livestream_status="on".
+# Starting the livestream here is just a DB flip; the vtuber picks it up on
+# its next 3-second poll and swaps hls.js source. RTMP to YouTube stays
+# connected the entire time.
 
 
 @router.post("/{session_id}/livestream/start", dependencies=[Depends(require_admin_key)])
 async def livestream_start(
     session_id: str,
-    app_state: AppState = Depends(get_app_state),
     db: AsyncSession = Depends(get_db),
 ):
     sess = await db.get(Session, session_id)
     if not sess:
         raise HTTPException(404, f"Unknown session: {session_id}")
-    # Gate on stream_url — livestream works whenever the preview is up,
-    # regardless of whether a worker is currently running.
     if not sess.stream_url or sess.status not in ("waiting", "running"):
         raise HTTPException(409, f"preview not ready (status={sess.status})")
-    m = app_state.kinds.get(sess.kind)
-    if not m or not m.narration:
-        raise HTTPException(409, f"kind {sess.kind} has no vtuber overlay — nothing to RTMP-push from")
-    if sess.slot is None:
-        raise HTTPException(409, "session has no slot")
-    sess.livestream_status = "starting"
-    await db.commit()
 
-    # start_livestream now SPAWNS the vtuber overlay (it didn't exist at
-    # session-creation time) and then kicks off the RTMP side-car inside it.
-    ok, msg = await streaming_svc.start_livestream(
-        kind=sess.kind,
-        slot=sess.slot,
-        session_id=sess.id,
-        narration=m.narration,
+    # Single-active invariant: any other session that's currently "on" flips
+    # to "off" so /api/stream/current-source picks this one.
+    others = await db.execute(
+        select(Session).where(
+            Session.id != session_id,
+            Session.livestream_status == "on",
+        )
     )
-    if ok:
-        sess.stream_url = config.vtuber_url_for_slot(sess.slot, sess.kind)
-        sess.livestream_status = "on"
-    else:
-        sess.livestream_status = "error"
-        sess.state = {**(sess.state or {}), "livestream_error": msg}
+    for other in others.scalars():
+        other.livestream_status = "off"
+
+    sess.livestream_status = "on"
     await db.commit()
-    if not ok:
-        raise HTTPException(500, f"livestream start failed: {msg}")
-    return {"ok": True, "stream_url": sess.stream_url, "livestream_status": sess.livestream_status}
+    return {"ok": True, "session_id": session_id, "livestream_status": "on"}
 
 
 @router.post("/{session_id}/livestream/stop", dependencies=[Depends(require_admin_key)])
 async def livestream_stop(
     session_id: str,
-    app_state: AppState = Depends(get_app_state),
     db: AsyncSession = Depends(get_db),
 ):
     sess = await db.get(Session, session_id)
     if not sess:
         raise HTTPException(404, f"Unknown session: {session_id}")
-    if sess.slot is None:
-        return {"ok": True, "livestream_status": "off"}
-    ok, msg = await streaming_svc.stop_livestream(sess.kind, sess.slot)
-    await streaming_svc.stop_vtuber_overlay(sess.kind, sess.slot)
-    sess.stream_url = None
-    sess.livestream_status = "off" if ok else "error"
+    sess.livestream_status = "off"
     await db.commit()
-    if not ok:
-        raise HTTPException(500, f"stop-rtmp failed: {msg}")
-    return {"ok": True, "livestream_status": sess.livestream_status, "output": msg}
+    return {"ok": True, "livestream_status": "off"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-psychic-train narrator sidecar.
+psychic-train narrator sidecar — persistent variant.
 
-Polls GET /api/sessions/{id}/events from the broker (works across the
-game-server / stream-server split) and speaks first-person commentary via
-the Open-LLM-VTuber /api/speak endpoint.
+Runs forever inside the persistent vtuber-overlay container. Polls
+GET /api/stream/current-source to know which session is currently flagged
+livestream_status="on". When the active session changes, resets memory and
+fast-forwards past the backlog so we only narrate events going forward.
+When no session is live, falls quiet (Phase 1: no replay narration).
 """
 
 import json
@@ -25,7 +27,7 @@ AVATAR_URL = os.environ.get("AVATAR_URL", "http://localhost:12393")
 SPEAK_URL = f"{AVATAR_URL}/api/speak"
 
 BROKER_URL = os.environ.get("BROKER_URL", "http://broker:8080")
-SESSION_ID = os.environ.get("SESSION_ID", "")
+CURRENT_SOURCE_URL = f"{BROKER_URL.rstrip('/')}/api/stream/current-source"
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 NARRATION_MODEL = os.environ.get("NARRATION_MODEL", "claude-haiku-4-5-20251001")
@@ -43,7 +45,8 @@ BASE_MIN_PAUSE = int(os.environ.get("MIN_PAUSE", "10"))
 BASE_MAX_PAUSE = int(os.environ.get("MAX_PAUSE", "30"))
 
 MEMORY_WINDOW = 10
-POLL_INTERVAL = 2.0   # seconds between broker event polls during a pause
+POLL_INTERVAL = 2.0          # seconds between event polls during a pause
+SOURCE_POLL_INTERVAL = 5.0   # how often to recheck which session is active
 
 MOOD_PROMPTS = {
     "hyped": "You're feeling great right now. Confident, pumped, maybe a little cocky. Celebrate wins.",
@@ -129,18 +132,42 @@ def _parse_mood_hints(hints: str) -> tuple[list[str], list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# Broker event polling
+# Broker polling
 # ---------------------------------------------------------------------------
 
 
-def fetch_events(after_id: int, limit: int = 50) -> list[dict]:
-    url = f"{BROKER_URL}/api/sessions/{SESSION_ID}/events?after={after_id}&limit={limit}"
+def get_active_session_id() -> str | None:
+    """Return the session_id currently flagged livestream_status='on', or
+    None when nothing is live (broker returns type='none' or 'archive')."""
+    try:
+        with urllib.request.urlopen(CURRENT_SOURCE_URL, timeout=10) as r:
+            data = json.loads(r.read())
+    except Exception as e:
+        print(f"  [warn] current-source poll failed: {e}", file=sys.stderr)
+        return None
+    if data.get("type") == "live":
+        return data.get("session_id")
+    return None
+
+
+def fetch_events(session_id: str, after_id: int, limit: int = 50) -> list[dict]:
+    url = f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}/events?after={after_id}&limit={limit}"
     try:
         with urllib.request.urlopen(url, timeout=10) as r:
             return json.loads(r.read())
     except Exception as e:
         print(f"  [warn] fetch_events failed: {e}", file=sys.stderr)
         return []
+
+
+def fast_forward_event_id(session_id: str) -> int:
+    """When switching to a session, skip past any backlog so we only narrate
+    events going forward. Returns the highest event id currently in the
+    session's log (0 if none)."""
+    rows = fetch_events(session_id, after_id=0, limit=10000)
+    if not rows:
+        return 0
+    return rows[-1]["id"]
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +275,14 @@ def tangent(state: NarrationState) -> str:
                        build_messages(state, random.choice(TANGENT_PROMPTS) + " 1-2 sentences."))
 
 
+def session_intro(state: NarrationState, session_id: str) -> str:
+    user = (
+        f"You just started a new task — session {session_id}. "
+        "Intro yourself for the stream as you pick this up. 1-2 sentences."
+    )
+    return call_claude(system_with_mood("hyped"), [{"role": "user", "content": user}])
+
+
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
@@ -255,16 +290,11 @@ def tangent(state: NarrationState) -> str:
 
 def run() -> None:
     print("=" * 50)
-    print("  psychic-train narrator")
-    print(f"  session: {SESSION_ID}")
+    print("  psychic-train narrator (persistent)")
     print(f"  broker:  {BROKER_URL}")
     print(f"  avatar:  {AVATAR_URL}")
     print(f"  model:   {NARRATION_MODEL}")
     print("=" * 50)
-
-    if not SESSION_ID:
-        print("  ERROR: SESSION_ID not set — narrator cannot poll events", file=sys.stderr)
-        return
 
     # Wait for avatar server
     for i in range(60):
@@ -277,31 +307,47 @@ def run() -> None:
             time.sleep(1)
 
     state = NarrationState()
-    last_event_id = 0
+    active_session_id: str | None = None
+    last_event_id: int = 0
     print("  entering narration loop\n")
 
-    # Intro — fires immediately (before any events arrive)
-    try:
-        intro = call_claude(
-            system_with_mood("hyped"),
-            [{"role": "user", "content": "Intro yourself for the stream — you're live now. 1-2 sentences."}],
-        )
-        if intro:
-            speak(intro)
-            state.add_narration(intro)
-    except Exception as e:
-        print(f"  [warn] intro failed: {e}", file=sys.stderr)
-
     while True:
+        # Re-check which session (if any) is currently being streamed.
+        new_active = get_active_session_id()
+
+        if new_active != active_session_id:
+            print(f"  [switch] active session: {active_session_id} -> {new_active}")
+            state = NarrationState()
+            active_session_id = new_active
+            if new_active is None:
+                last_event_id = 0
+            else:
+                last_event_id = fast_forward_event_id(new_active)
+                try:
+                    intro = session_intro(state, new_active)
+                    if intro:
+                        speak(intro)
+                        state.add_narration(intro)
+                except Exception as e:
+                    print(f"  [warn] intro failed: {e}", file=sys.stderr)
+
+        if active_session_id is None:
+            # Standby — Phase 1 stays quiet during archive replay / no source.
+            time.sleep(SOURCE_POLL_INTERVAL)
+            continue
+
         lo, hi = state.pause_range()
         pause = random.uniform(lo, hi)
-        print(f"  ... pausing {pause:.1f}s (mood: {state.mood})")
+        print(f"  ... pausing {pause:.1f}s (session={active_session_id} mood={state.mood})")
 
-        # Poll for new events in small slices throughout the pause window
+        # Poll for new events in small slices throughout the pause window.
         slept = 0.0
         buf: list[dict] = []
         while slept < pause:
-            rows = fetch_events(after_id=last_event_id)
+            # Bail out early if the active session changed under us.
+            if get_active_session_id() != active_session_id:
+                break
+            rows = fetch_events(active_session_id, after_id=last_event_id)
             if rows:
                 last_event_id = rows[-1]["id"]
                 buf.extend(r["event"] for r in rows)

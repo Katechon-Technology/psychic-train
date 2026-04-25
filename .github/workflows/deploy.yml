@@ -183,8 +183,11 @@ jobs:
               docker tag  $REGISTRY/psychic-train-${name}:latest psychic-train/${name}:latest
             done
 
-            # Reap running stream-client and vtuber containers
-            docker ps -q --filter name=stream-client- --filter name=vtuber- | xargs -r docker rm -f || true
+            # Reap any running stream-client containers (broker-spawned, not
+            # compose-managed). Do NOT match name=vtuber- here — that would
+            # also kill the persistent compose-managed vtuber-overlay and
+            # force YouTube to reconnect (re-Go-Live) on every deploy.
+            docker ps -q --filter name=stream-client- | xargs -r docker rm -f || true
 
             cd /opt/psychic-train/machines/stream-server
             docker compose up -d --remove-orphans

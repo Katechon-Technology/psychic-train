@@ -34,6 +34,29 @@ services:
     ports:
       - "8090:8090"
 
+  # Persistent vtuber-overlay. Stays up forever; polls the broker (over the
+  # public BROKER_URL — must include https://) for which session is currently
+  # flagged livestream_status="on" and overlays its HLS. RTMP push to YouTube
+  # is kicked off ONCE at boot so YouTube only needs Go Live one time, ever.
+  vtuber-overlay:
+    # Image name matches what the deploy script retags to locally. CI pulls
+    # ghcr.io/katechon-technology/psychic-train-vtuber-overlay:latest then
+    # `docker tag`s it to psychic-train/vtuber-overlay:latest before this
+    # compose runs.
+    image: psychic-train/vtuber-overlay:latest
+    restart: unless-stopped
+    environment:
+      BROKER_URL: ${BROKER_URL}
+      BROKER_API_KEY: ${BROKER_ADMIN_KEY}
+      YOUTUBE_STREAM_KEY: ${YOUTUBE_STREAM_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
+      CHARACTER_NAME: ${CHARACTER_NAME:-Claude}
+      LIVE2D_MODEL: ${LIVE2D_MODEL:-mao_pro}
+      VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
+      PERSONA_PROMPT: ${PERSONA_PROMPT:-}
+
 volumes:
   caddy_data:
   caddy_config:

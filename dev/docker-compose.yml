@@ -99,21 +99,38 @@ services:
     ports:
       - "3000:3000"
 
+  # The persistent vtuber-overlay. Stays up forever; polls broker for which
+  # session is currently flagged livestream_status="on" and overlays its HLS.
+  # RTMP push to YouTube is kicked off ONCE at boot so YouTube only needs
+  # Go Live one time.
+  vtuber-overlay:
+    build:
+      context: ..
+      dockerfile: packages/vtuber-overlay/Dockerfile
+    image: psychic-train/vtuber-overlay:latest
+    depends_on:
+      - broker
+    restart: unless-stopped
+    environment:
+      BROKER_URL: http://broker:8080
+      BROKER_API_KEY: ${BROKER_ADMIN_KEY:-dev}
+      YOUTUBE_STREAM_KEY: ${YOUTUBE_STREAM_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      NARRATION_MODEL: ${NARRATION_MODEL:-claude-haiku-4-5-20251001}
+      CHARACTER_NAME: ${CHARACTER_NAME:-Claude}
+      LIVE2D_MODEL: ${LIVE2D_MODEL:-mao_pro}
+      VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
+      PERSONA_PROMPT: ${PERSONA_PROMPT:-}
+    ports:
+      - "3050:3000"
+
   # ---------------- build-only images (spawned on demand by broker) ----------------
 
   stream-client-base:
     build:
       context: ../packages/stream-client-base
     image: psychic-train/stream-client-base:latest
-    profiles: ["build"]
-    command: ["true"]
-
-  vtuber-overlay:
-    build:
-      context: ..
-      dockerfile: packages/vtuber-overlay/Dockerfile
-    image: psychic-train/vtuber-overlay:latest
-    depends_on: [stream-client-base]
     profiles: ["build"]
     command: ["true"]
 
