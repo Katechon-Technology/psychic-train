@@ -99,15 +99,22 @@ services:
     ports:
       - "3000:3000"
 
-  # The persistent vtuber-overlay. Stays up forever; polls broker for which
-  # session is currently flagged livestream_status="on" and overlays its HLS.
-  # RTMP push to YouTube is kicked off ONCE at boot so YouTube only needs
-  # Go Live one time.
+  # The persistent vtuber-overlay. Polls broker for which session is currently
+  # flagged livestream_status="on" and overlays its HLS. RTMP push to YouTube is
+  # kicked off ONCE at boot so YouTube only needs Go Live one time.
+  #
+  # Gated behind the `vtuber` profile so plain `docker compose up` doesn't auto-
+  # start it in dev (TTS+narration cost real money on every session). Bring it
+  # up explicitly with:
+  #     docker compose --profile vtuber up -d vtuber-overlay
+  # `docker compose build vtuber-overlay` still works regardless (explicit
+  # service positional arg overrides profile filtering).
   vtuber-overlay:
     build:
       context: ..
       dockerfile: packages/vtuber-overlay/Dockerfile
     image: psychic-train/vtuber-overlay:latest
+    profiles: ["vtuber"]
     depends_on:
       - broker
     restart: unless-stopped

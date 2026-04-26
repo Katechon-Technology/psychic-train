@@ -15,6 +15,16 @@ const SESSIONS_ROOT =
   join(process.cwd(), "sessions");
 const VIEWPORT = { width: 1280, height: 800 };
 
+// Optional kiosk mode (no URL bar, no tabs, fullscreen) for streaming setups.
+const KIOSK_MODE = !!process.env.PLAYWRIGHT_BROWSER_KIOSK;
+
+// Optional comma-separated list of unpacked-extension directories. Loaded via
+// --load-extension; --disable-extensions-except scopes Chromium to only these.
+const EXTENSION_PATHS = (process.env.PLAYWRIGHT_BROWSER_EXTENSIONS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 export interface Session {
   id: string;
   dir: string;
@@ -31,15 +41,57 @@ const sessions = new Map<string, Session>();
 async function getContext(): Promise<BrowserContext> {
   if (sharedContext) return sharedContext;
   await mkdir(PROFILE_DIR, { recursive: true });
+
+  const args = ["--disable-blink-features=AutomationControlled"];
+  if (KIOSK_MODE) {
+    args.push("--kiosk", "--start-maximized", "--no-first-run");
+  }
+  if (EXTENSION_PATHS.length) {
+    args.push(`--disable-extensions-except=${EXTENSION_PATHS.join(",")}`);
+    args.push(`--load-extension=${EXTENSION_PATHS.join(",")}`);
+  }
+
+  console.log(
+    `[playwright-browser] launching Chromium kiosk=${KIOSK_MODE} extensions=${EXTENSION_PATHS.join(",") || "(none)"} args=${JSON.stringify(args)}`,
+  );
+
   sharedContext = await chromium.launchPersistentContext(PROFILE_DIR, {
+    // `channel: 'chromium'` switches from the default headless-shell-leaning
+    // build to the full Chromium binary, which is the only one Playwright
+    // supports `--load-extension` on. Required whenever EXTENSION_PATHS is set.
+    channel: EXTENSION_PATHS.length ? "chromium" : undefined,
     headless: false,
-    viewport: VIEWPORT,
+    // viewport: null in kiosk mode lets Chromium use the full window/screen
+    // size; otherwise Playwright would emulate a fixed viewport inside chrome.
+    viewport: KIOSK_MODE ? null : VIEWPORT,
     recordVideo: { dir: join(SESSIONS_ROOT, ".video-staging"), size: VIEWPORT },
-    args: ["--disable-blink-features=AutomationControlled"],
+    args,
   });
   sharedContext.on("close", () => {
     sharedContext = null;
   });
+
+  // Extensions (notably Consent-O-Matic) open onboarding tabs on first install.
+  // In kiosk mode that tab steals focus and hides whatever the agent is doing.
+  // Auto-close anything that lands on a chrome-extension:// or chrome:// URL.
+  if (EXTENSION_PATHS.length) {
+    const closeIfExtensionPage = async (p: Page) => {
+      try {
+        await p.waitForLoadState("domcontentloaded", { timeout: 5000 }).catch(() => {});
+        const url = p.url();
+        if (url.startsWith("chrome-extension://") || url.startsWith("chrome://")) {
+          console.log(`[playwright-browser] auto-closing extension tab: ${url}`);
+          await p.close();
+        }
+      } catch {
+        // page may already be closed
+      }
+    };
+    sharedContext.on("page", (p) => void closeIfExtensionPage(p));
+    // Sweep tabs that opened before our listener attached.
+    for (const p of sharedContext.pages()) await closeIfExtensionPage(p);
+  }
+
   return sharedContext;
 }
 
@@ -50,6 +102,9 @@ export async function createSession(opts: { trace?: boolean } = {}): Promise<Ses
   await mkdir(join(dir, "screenshots"), { recursive: true });
 
   const page = await ctx.newPage();
+  // In kiosk mode, only one tab is visible; ensure ours is the foregrounded one
+  // even if an extension opened (and we closed) a tab moments earlier.
+  await page.bringToFront().catch(() => {});
   if (opts.trace) {
     await ctx.tracing.start({ screenshots: true, snapshots: true, sources: true, name: id });
   }
