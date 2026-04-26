@@ -239,13 +239,22 @@ def build_messages(state: NarrationState, user_msg: str) -> list[dict]:
     return messages
 
 
+# Mechanical/internal fields the agents emit for their own bookkeeping. The
+# narrator doesn't need them and Claude latches onto numeric ones ("scrolled
+# 472 pixels", "clicked anchor-12") which kills the natural-commentator vibe.
+_NOISE_FIELDS = {"step", "result", "glide", "steps", "amount", "ref", "t"}
+
+
 def _summarize_events(events: list[dict]) -> str:
     out = []
     # page_content events are handled separately as sticky context — keep them
     # out of the JSON tail so they don't blow the token budget.
     filtered = [e for e in events if str(e.get("kind", "")).lower() != "page_content"]
     for e in filtered[-5:]:
-        snippet = json.dumps(e, default=str)
+        clean = {k: v for k, v in e.items() if k not in _NOISE_FIELDS}
+        if isinstance(clean.get("input"), dict):
+            clean["input"] = {k: v for k, v in clean["input"].items() if k not in _NOISE_FIELDS}
+        snippet = json.dumps(clean, default=str)
         if len(snippet) > 400:
             snippet = snippet[:400] + "…"
         out.append(snippet)
@@ -291,9 +300,11 @@ def commentary_for(events: list[dict], state: NarrationState) -> str:
     summary = _summarize_events(events)
     user = (
         _format_page_context(state.current_page)
-        + "Here's what just happened — these are YOUR actions logged as JSON:\n\n"
+        + "Recent actions (background context — do NOT narrate these directly):\n\n"
         f"{summary}\n\n"
-        "React as yourself. 1-3 sentences max. No stage directions."
+        "Talk about what's actually on screen above, like a YouTuber thinking out "
+        "loud. 1-3 sentences. No stage directions, no mechanics — never mention "
+        "scrolling, clicking, pixels, refs, IDs, or step numbers."
     )
     return call_claude(system_with_mood(state.mood), build_messages(state, user))
 
