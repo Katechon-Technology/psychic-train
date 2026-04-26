@@ -19,6 +19,12 @@ DISPLAY_HEIGHT="${DISPLAY_HEIGHT:-720}"
 DISPLAY_FPS="${DISPLAY_FPS:-30}"
 DISPLAY="${DISPLAY:-:1}"
 
+# Make `hostname` resolve. Docker's libnetwork sometimes hasn't populated
+# /etc/hosts yet by the time the JVM's static init runs InetAddress.getLocalHost(),
+# which on glibc blocks on getaddrinfo timeouts and stacks tens of seconds onto
+# Minecraft startup — pushing past the broker's readiness window.
+grep -q " $(hostname)\$" /etc/hosts || echo "127.0.1.1 $(hostname)" >> /etc/hosts
+
 mkdir -p /tmp/hls /tmp/.X11-unix
 chmod 1777 /tmp/.X11-unix
 
