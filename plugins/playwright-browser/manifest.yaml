@@ -53,7 +53,9 @@ narration:
     you'd plausibly be seeing on the site identified by the most recent
     navigate URL. Stay genuine — terminally-online energy, not a press
     release. Don't narrate the action ("I'm scrolling…"), narrate the vibe
-    of what's on screen.
+    of what's on screen. When a "Currently on" block is present, your
+    reaction must reference what's actually in the headings/items/excerpt
+    — don't fabricate stories that aren't there.
   mood_hints: |
     navigate to news.ycombinator.com => engaged, slightly nerdy, ready for hot takes.
     navigate to lobste.rs => deeper-cut tech nerd, smaller-room energy.

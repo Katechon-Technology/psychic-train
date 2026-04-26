@@ -157,6 +157,21 @@ async function snapshot(sid: string): Promise<SnapshotResult | null> {
   return res.ok ? (res.data as SnapshotResult) : null;
 }
 
+// Pulls a structured text digest of the current page (title, headings,
+// headline-shaped links, leading paragraphs) and pushes it to the broker as
+// a "page_content" event. The narrator picks the latest one up and grounds
+// its commentary in the actual on-screen content rather than guessing from
+// the URL. Failures are non-fatal — the loop keeps running with the previous
+// page context.
+async function capturePageDigest(sid: string, step: number): Promise<void> {
+  const res = await pwCall(`/session/${sid}/page_digest`);
+  if (res.ok && res.data) {
+    log("page_content", { step, ...res.data });
+  } else {
+    log("page_content_error", { step, error: res.error });
+  }
+}
+
 async function getScrollY(sid: string): Promise<number> {
   const res = await pwCall(`/session/${sid}/evaluate`, {
     expression: "return window.scrollY;",
@@ -280,6 +295,9 @@ async function dwellOnArticle(sid: string, step: number): Promise<void> {
   const dwellEnd = Date.now() + jitter(ARTICLE_DWELL_MIN_MS, ARTICLE_DWELL_MAX_MS);
   // Brief settle so the article finishes loading before the first scroll.
   await sleep(2_000);
+  // Now that the article DOM has settled, ship its digest so the narrator
+  // can react to the article content (not just the headline ref).
+  await capturePageDigest(sid, step);
   while (Date.now() < dwellEnd) {
     await scrollDown(sid, step);
     await sleep(jitter(SCROLL_MIN_MS, SCROLL_MAX_MS));
@@ -297,6 +315,7 @@ async function runSite(
   // reads those refs so we can click the same element later without a fresh
   // snapshot invalidating them.
   await snapshot(sid);
+  await capturePageDigest(sid, step);
 
   let queue: Hotspot[] = shuffle(await extractHotspots(sid));
   console.log(`[agent] site=${site.name} initial hotspots=${queue.length}`);
@@ -364,6 +383,7 @@ async function runSite(
           await dwellOnArticle(sid, step++);
           await navigateTo(sid, site.url, step++);
           await snapshot(sid);
+          await capturePageDigest(sid, step);
           queue = shuffle(await extractHotspots(sid));
           lastScrollY = await getScrollY(sid);
           lastProgressAt = Date.now();

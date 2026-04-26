@@ -9,6 +9,7 @@ import {
   shutdown,
   type Session,
 } from "./browser.ts";
+import { buildDigest } from "./page_digest.ts";
 
 const PORT = Number(process.env.PORT ?? 8731);
 const HOST = process.env.HOST ?? "127.0.0.1";
@@ -101,6 +102,11 @@ app.post("/session/:id/forward", async (req) => {
 app.post("/session/:id/snapshot", async (req) => {
   const s = requireSession((req.params as any).id);
   return s.recorder.record(s.page, "snapshot", null, () => s.snapshot.build());
+});
+
+app.post("/session/:id/page_digest", async (req) => {
+  const s = requireSession((req.params as any).id);
+  return s.recorder.record(s.page, "page_digest", null, () => buildDigest(s.page));
 });
 
 app.post("/session/:id/screenshot", async (req) => {

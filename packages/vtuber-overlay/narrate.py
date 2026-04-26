@@ -68,6 +68,10 @@ class NarrationState:
         self.total_errors: int = 0
         self.events_seen: int = 0
         self.mood: str = "chill"
+        # Latest page_content event payload, kept sticky between events so the
+        # narrator always has on-screen context to react to. Reset on session
+        # switch by virtue of NarrationState() being reconstructed.
+        self.current_page: dict | None = None
         self._hyped_triggers, self._frustrated_triggers = _parse_mood_hints(NARRATION_MOOD_HINTS)
 
     def add_narration(self, text: str) -> None:
@@ -81,6 +85,9 @@ class NarrationState:
         batch_milestones = 0
         for e in events:
             kind = str(e.get("kind", "")).lower()
+            if kind == "page_content":
+                self.current_page = e
+                continue
             if any(re.search(p, kind) for p in self._frustrated_triggers) or e.get("error"):
                 batch_errors += 1
                 self.total_errors += 1
@@ -234,7 +241,10 @@ def build_messages(state: NarrationState, user_msg: str) -> list[dict]:
 
 def _summarize_events(events: list[dict]) -> str:
     out = []
-    for e in events[-5:]:
+    # page_content events are handled separately as sticky context — keep them
+    # out of the JSON tail so they don't blow the token budget.
+    filtered = [e for e in events if str(e.get("kind", "")).lower() != "page_content"]
+    for e in filtered[-5:]:
         snippet = json.dumps(e, default=str)
         if len(snippet) > 400:
             snippet = snippet[:400] + "…"
@@ -242,10 +252,46 @@ def _summarize_events(events: list[dict]) -> str:
     return "\n".join(out)
 
 
+def _format_page_context(page: dict | None) -> str:
+    if not page:
+        return ""
+    parts = ["## Currently on"]
+    title = (page.get("title") or "").strip()
+    url = (page.get("url") or "").strip()
+    if title and url:
+        parts.append(f"{title} — {url}")
+    elif url:
+        parts.append(url)
+    elif title:
+        parts.append(title)
+    desc = (page.get("description") or "").strip()
+    if desc:
+        parts.append(desc)
+    headings = page.get("headings") or []
+    if headings:
+        parts.append("")
+        parts.append("Headings:")
+        for h in headings[:10]:
+            parts.append(f"- {h}")
+    items = page.get("items") or []
+    if items:
+        parts.append("")
+        parts.append("Visible items:")
+        for it in items[:10]:
+            parts.append(f"- {it}")
+    paragraphs = page.get("paragraphs") or []
+    if paragraphs:
+        parts.append("")
+        parts.append("Excerpt:")
+        parts.append(paragraphs[0])
+    return "\n".join(parts) + "\n\n"
+
+
 def commentary_for(events: list[dict], state: NarrationState) -> str:
     summary = _summarize_events(events)
     user = (
-        "Here's what just happened — these are YOUR actions logged as JSON:\n\n"
+        _format_page_context(state.current_page)
+        + "Here's what just happened — these are YOUR actions logged as JSON:\n\n"
         f"{summary}\n\n"
         "React as yourself. 1-3 sentences max. No stage directions."
     )
@@ -266,13 +312,13 @@ TANGENT_PROMPTS = [
 
 
 def idle_thought(state: NarrationState) -> str:
-    return call_claude(system_with_mood(state.mood),
-                       build_messages(state, random.choice(IDLE_PROMPTS) + " 1-2 sentences."))
+    user = _format_page_context(state.current_page) + random.choice(IDLE_PROMPTS) + " 1-2 sentences."
+    return call_claude(system_with_mood(state.mood), build_messages(state, user))
 
 
 def tangent(state: NarrationState) -> str:
-    return call_claude(system_with_mood("philosophical"),
-                       build_messages(state, random.choice(TANGENT_PROMPTS) + " 1-2 sentences."))
+    user = _format_page_context(state.current_page) + random.choice(TANGENT_PROMPTS) + " 1-2 sentences."
+    return call_claude(system_with_mood("philosophical"), build_messages(state, user))
 
 
 def session_intro(state: NarrationState, session_id: str) -> str:
