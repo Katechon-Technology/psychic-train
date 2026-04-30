@@ -22,6 +22,17 @@ class StartWorkerRequest(BaseModel):
     model: Optional[str] = None  # falls back to broker config.MODEL if omitted
 
 
+class StartAgentRequest(BaseModel):
+    """Body for POST /sessions/{id}/agents/{kind}/start (and /resume)."""
+    anthropic_api_key: str
+    model: Optional[str] = None
+    task: Optional[str] = None  # piped through to the agent as TASK_HINT env var
+
+
+class WorkspaceSwitchRequest(BaseModel):
+    workspace: int  # 0-indexed openbox desktop number
+
+
 class SessionInfo(BaseModel):
     id: str
     kind: str

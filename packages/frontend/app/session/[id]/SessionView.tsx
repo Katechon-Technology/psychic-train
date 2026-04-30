@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import type { SessionInfo } from "../../../lib/api";
+import ArcadePanel from "./ArcadePanel";
 import LivestreamPanel from "./LivestreamPanel";
 import WorkerPanel from "./WorkerPanel";
 
@@ -153,10 +154,11 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
         </div>
       )}
 
-      <WorkerPanel
-        session={session}
-        onSession={(s) => setSession(s)}
-      />
+      {session?.kind === "arcade" ? (
+        <ArcadePanel session={session} onSession={(s) => setSession(s)} />
+      ) : (
+        <WorkerPanel session={session} onSession={(s) => setSession(s)} />
+      )}
 
       <LivestreamPanel
         sessionId={sessionId}

@@ -13,13 +13,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG MC_VERSION=1.21.1
 ENV MC_VERSION=${MC_VERSION}
 
+# download_mc.sh is shipped in the image so users CAN re-run it standalone
+# (e.g. when bootstrapping plugin-data/minecraft/ on a fresh host), but it is
+# NOT executed at build time. Mojang's CDN is slow and flaky enough that
+# baking 500MB of client + assets into every rebuild was a build-cycle tax
+# we couldn't justify. Instead, the host's plugin-data/minecraft/ directory
+# is seeded into the psychic_train_minecraft_client named volume by
+# `dev/docker-compose.yml :: minecraft-client-init`, and the manifest mounts
+# that volume read-only at /opt/mc-data when the broker spawns this image.
 COPY download_mc.sh /app/download_mc.sh
 COPY launch.sh /app/launch.sh
 RUN chmod +x /app/download_mc.sh /app/launch.sh
-
-# Pre-download vanilla client + all libraries into /opt/mc-data at build time.
-# Bakes ~500MB into the image so first-session startup is instant.
-RUN /app/download_mc.sh
 
 # Software-OpenGL rendering (no GPU in the container).
 ENV LIBGL_ALWAYS_SOFTWARE=1 \

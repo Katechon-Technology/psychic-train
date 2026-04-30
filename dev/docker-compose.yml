@@ -23,6 +23,11 @@ volumes:
   # plugin manifests.
   psychic_train_minecraft_server:
     name: psychic_train_minecraft_server
+  # Holds the Minecraft client jars + libraries + ~3,800 asset objects that
+  # the minecraft-stream-client (and arcade-stream-client) Java process loads
+  # at boot. Populated from plugin-data/minecraft/ via minecraft-client-init.
+  psychic_train_minecraft_client:
+    name: psychic_train_minecraft_client
   psychic_train_factorio_client:
     name: psychic_train_factorio_client
 
@@ -200,6 +205,48 @@ services:
     profiles: ["build"]
     command: ["true"]
 
+  desktop-agent:
+    build:
+      context: ../plugins/desktop/agent
+    image: psychic-train/desktop-agent:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  desktop-stream-client:
+    build:
+      context: ../plugins/desktop/stream-client
+    image: psychic-train/desktop-stream-client:latest
+    depends_on: [stream-client-base]
+    profiles: ["build"]
+    command: ["true"]
+
+  # The arcade stream-client COPYs assets out of the playwright-browser and
+  # minecraft plugins (vendored fastify server, MC download script) so its
+  # build context is the parent `plugins/` directory rather than its own
+  # subdirectory. Pattern borrowed from vtuber-overlay above.
+  arcade-playwright-agent:
+    build:
+      context: ../plugins/arcade/agent-playwright
+    image: psychic-train/arcade-playwright-agent:latest
+    profiles: ["build"]
+    command: ["true"]
+
+  arcade-stream-client:
+    build:
+      context: ../plugins
+      dockerfile: arcade/stream-client/Dockerfile
+    image: psychic-train/arcade-stream-client:latest
+    # COPYs the /pw-browser tree + Playwright Chromium cache out of
+    # playwright-browser-stream-client at build time (avoids re-downloading
+    # Playwright's Chromium on every arcade rebuild). MC client jars/assets
+    # arrive at runtime via the psychic_train_minecraft_client volume mount,
+    # NOT baked at build time.
+    depends_on:
+      - stream-client-base
+      - playwright-browser-stream-client
+    profiles: ["build"]
+    command: ["true"]
+
   # ---------------- one-shot volume seeders ----------------
 
   minecraft-server-init:
@@ -213,6 +260,31 @@ services:
       - psychic_train_minecraft_server:/dst
     command: >
       sh -c "cp -a /src/. /dst/ && echo 'minecraft-server volume seeded'"
+
+  minecraft-client-init:
+    # Copies plugin-data/minecraft/ (host-populated; see
+    # plugin-data/minecraft/README.md) into the named volume that both
+    # minecraft-stream-client and arcade-stream-client mount at /opt/mc-data.
+    # Run with: docker compose --profile init run --rm minecraft-client-init
+    #
+    # This replaces the old build-time download_mc.sh step. Mojang's CDN is
+    # too slow + flaky to fetch ~500MB of jars + assets on every Dockerfile
+    # rebuild, so we keep the data on the host and copy it into a runtime
+    # volume once.
+    image: alpine:3.20
+    profiles: ["init"]
+    volumes:
+      - ../plugin-data/minecraft:/src:ro
+      - psychic_train_minecraft_client:/dst
+    command: >
+      sh -c "
+        if [ ! -f /src/versions/1.21.1/1.21.1.json ]; then
+          echo 'plugin-data/minecraft/ looks empty. See plugin-data/minecraft/README.md to populate it.';
+          exit 1;
+        fi;
+        cp -a /src/. /dst/ &&
+        echo 'minecraft-client volume seeded ('$$(du -sh /dst 2>/dev/null | cut -f1)')'
+      "
 
   factorio-client-init:
     # Copies plugins/factorio/factorio-client/ into the named volume that the

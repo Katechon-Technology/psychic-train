@@ -9,7 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import config
 from ..dependencies import get_app_state, get_db, require_admin_key
 from ..models import Session, SessionEvent
-from ..schemas import CreateSessionRequest, SessionInfo, StartWorkerRequest
+from ..schemas import (
+    CreateSessionRequest,
+    SessionInfo,
+    StartAgentRequest,
+    StartWorkerRequest,
+    WorkspaceSwitchRequest,
+)
 from ..services import environment as env_svc
 from ..services import slots as slots_svc
 from ..state import AppState
@@ -199,6 +205,149 @@ async def livestream_stop(
     sess.livestream_status = "off"
     await db.commit()
     return {"ok": True, "livestream_status": "off"}
+
+
+# ---------------------------------------------------------------------------
+# Multi-agent plugins (e.g. `arcade`) — per-agent lifecycle + workspace switch
+# ---------------------------------------------------------------------------
+
+
+def _require_multi_agent_kind(sess: Session, app_state: AppState, agent_kind: str) -> None:
+    m = app_state.kinds.get(sess.kind)
+    if not m or not m.agents:
+        raise HTTPException(409, f"kind {sess.kind} is not a multi-agent plugin")
+    if agent_kind not in m.agents:
+        raise HTTPException(404, f"kind {sess.kind} has no agent named {agent_kind!r}")
+
+
+@router.post(
+    "/{session_id}/agents/{agent_kind}/start",
+    response_model=SessionInfo,
+    status_code=202,
+    dependencies=[Depends(require_admin_key)],
+)
+async def agent_start(
+    session_id: str,
+    agent_kind: str,
+    req: StartAgentRequest,
+    background: BackgroundTasks,
+    app_state: AppState = Depends(get_app_state),
+    db: AsyncSession = Depends(get_db),
+):
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    if sess.status not in ("waiting", "running"):
+        raise HTTPException(409, f"session status is {sess.status}; must be 'waiting' or 'running'")
+    _require_multi_agent_kind(sess, app_state, agent_kind)
+    if not req.anthropic_api_key.strip():
+        raise HTTPException(400, "anthropic_api_key is required")
+
+    background.add_task(
+        env_svc.start_agent,
+        session_id,
+        agent_kind,
+        req.anthropic_api_key,
+        req.model or config.MODEL,
+        req.task,
+        app_state,
+    )
+    await db.refresh(sess)
+    return SessionInfo.model_validate(sess)
+
+
+@router.post(
+    "/{session_id}/agents/{agent_kind}/stop",
+    response_model=SessionInfo,
+    dependencies=[Depends(require_admin_key)],
+)
+async def agent_stop(
+    session_id: str,
+    agent_kind: str,
+    app_state: AppState = Depends(get_app_state),
+    db: AsyncSession = Depends(get_db),
+):
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    _require_multi_agent_kind(sess, app_state, agent_kind)
+    await env_svc.stop_agent(session_id, agent_kind)
+    await db.refresh(sess)
+    return SessionInfo.model_validate(sess)
+
+
+@router.post(
+    "/{session_id}/agents/{agent_kind}/pause",
+    response_model=SessionInfo,
+    dependencies=[Depends(require_admin_key)],
+)
+async def agent_pause(
+    session_id: str,
+    agent_kind: str,
+    app_state: AppState = Depends(get_app_state),
+    db: AsyncSession = Depends(get_db),
+):
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    _require_multi_agent_kind(sess, app_state, agent_kind)
+    await env_svc.pause_agent(session_id, agent_kind)
+    await db.refresh(sess)
+    return SessionInfo.model_validate(sess)
+
+
+@router.post(
+    "/{session_id}/agents/{agent_kind}/resume",
+    response_model=SessionInfo,
+    status_code=202,
+    dependencies=[Depends(require_admin_key)],
+)
+async def agent_resume(
+    session_id: str,
+    agent_kind: str,
+    req: StartAgentRequest,
+    background: BackgroundTasks,
+    app_state: AppState = Depends(get_app_state),
+    db: AsyncSession = Depends(get_db),
+):
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    _require_multi_agent_kind(sess, app_state, agent_kind)
+    if not req.anthropic_api_key.strip():
+        raise HTTPException(400, "anthropic_api_key is required")
+    background.add_task(
+        env_svc.resume_agent,
+        session_id,
+        agent_kind,
+        req.anthropic_api_key,
+        req.model or config.MODEL,
+        app_state,
+    )
+    await db.refresh(sess)
+    return SessionInfo.model_validate(sess)
+
+
+@router.post(
+    "/{session_id}/workspace/switch",
+    dependencies=[Depends(require_admin_key)],
+)
+async def workspace_switch(
+    session_id: str,
+    req: WorkspaceSwitchRequest,
+    app_state: AppState = Depends(get_app_state),
+    db: AsyncSession = Depends(get_db),
+):
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    if sess.status not in ("waiting", "running"):
+        raise HTTPException(409, f"session status is {sess.status}")
+    try:
+        await env_svc.workspace_switch(session_id, req.workspace, app_state)
+    except RuntimeError as e:
+        raise HTTPException(500, str(e))
+    return {"ok": True, "workspace": req.workspace}
 
 
 # ---------------------------------------------------------------------------

@@ -60,5 +60,14 @@ plugins/minecraft/server/node_modules/
 dev/postgres_data/
 dev/redis_data/
 
+# Top-level "bring your own binaries" tree. Plugins that need large pre-fetched
+# datasets (e.g. minecraft client + assets) drop them under plugin-data/<plugin>/.
+# Init services in dev/docker-compose.yml seed named volumes from these dirs;
+# nothing here is committed. Keep the per-plugin READMEs so the dirs are
+# tracked for the COPY/bind to find.
+plugin-data/*
+!plugin-data/README.md
+!plugin-data/*/README.md
+
 # Backups
 backups/

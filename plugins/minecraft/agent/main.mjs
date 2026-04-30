@@ -11,7 +11,10 @@ const {
   SESSION_ID = "unknown",
   BROKER_URL = "http://broker:8080",
   BROKER_API_KEY = "",
+  TASK_HINT = "",
 } = process.env;
+
+const TASK = TASK_HINT.trim();
 
 if (!ENV_HOST || !ANTHROPIC_API_KEY) {
   console.error("[agent] ENV_HOST and ANTHROPIC_API_KEY are required");
@@ -134,13 +137,15 @@ function createBot() {
     }, 8000);
     bot.once("end", () => clearInterval(spectatorInterval));
 
-    const systemPrompt =
-      "You control a mineflayer bot in Minecraft creative mode. Each turn, examine the state and call ONE tool. Explore, build, interact — keep it interesting for a live stream viewer. Never stop exploring.";
+    const systemPrompt = TASK
+      ? "You control a mineflayer bot in Minecraft creative mode. The viewer has given you a specific task; each turn, examine the state and call ONE tool that advances toward it. Use chat for slash commands (e.g. /setblock, /give, /teleport) when relevant — you have op. Make visible progress every turn so the live viewer sees what you're doing."
+      : "You control a mineflayer bot in Minecraft creative mode. Each turn, examine the state and call ONE tool. Explore, build, interact — keep it interesting for a live stream viewer. Never stop exploring.";
 
     const seed = {
       role: "user",
-      content:
-        "You are a Minecraft bot in creative mode. Explore your surroundings, interact with the world, and entertain a viewer. Start by looking around, then move to somewhere interesting. Call one tool per turn.",
+      content: TASK
+        ? `You are a Minecraft bot in creative mode. The viewer has asked you to: "${TASK}". Pursue this goal. Use chat (including slash commands), look, and move tools as needed. Start by orienting yourself with a look or a state check, then act. Call one tool per turn.`
+        : "You are a Minecraft bot in creative mode. Explore your surroundings, interact with the world, and entertain a viewer. Start by looking around, then move to somewhere interesting. Call one tool per turn.",
     };
     let messages = [seed];
     let step = 0;
@@ -201,5 +206,6 @@ function createBot() {
   });
 }
 
-log("session_start", { session_id: SESSION_ID });
+if (TASK) console.log(`[agent] TASK_HINT: ${TASK}`);
+log("session_start", { session_id: SESSION_ID, task: TASK || null });
 createBot();

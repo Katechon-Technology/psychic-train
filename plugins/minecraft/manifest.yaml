@@ -38,6 +38,11 @@ stream_client:
     width: 1280
     height: 720
     fps: 20
+  # /opt/mc-data is the Minecraft client + libraries + assets the in-container
+  # Java process needs to start. Provisioned out-of-image from
+  # plugin-data/minecraft/ via dev/docker-compose.yml :: minecraft-client-init.
+  volumes:
+    - { name: psychic_train_minecraft_client, mount: /opt/mc-data, readonly: true }
   env:
     MC_HOST: "{env_host}"
     MC_PORT: "{game_internal}"

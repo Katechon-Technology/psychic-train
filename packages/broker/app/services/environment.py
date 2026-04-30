@@ -36,8 +36,13 @@ def _env_container_name(kind: str, slot: int) -> str:
     return f"env-{kind}-{slot}"
 
 
-def _agent_container_name(session_id: str) -> str:
-    return f"agent-{session_id}"
+def _agent_container_name(session_id: str, agent_kind: str | None = None) -> str:
+    """Single-agent plugins use `agent-{session_id}`; multi-agent plugins use
+    `agent-{session_id}-{agent_kind}` (one container per logical agent in the
+    manifest's `agents:` map)."""
+    if agent_kind is None:
+        return f"agent-{session_id}"
+    return f"agent-{session_id}-{agent_kind}"
 
 
 def _stream_container_name(kind: str, slot: int) -> str:
@@ -175,6 +180,20 @@ async def start_worker(
     """Background task kicked off by POST /sessions/{id}/worker/start."""
     m = app_state.kinds[kind]
     narration_on = m.narration is not None
+    if m.agent is None:
+        async with async_session_factory() as db:
+            sess = await db.get(Session, session_id)
+            if sess:
+                sess.worker_status = "error"
+                sess.state = {
+                    **(sess.state or {}),
+                    "worker_error": (
+                        f"kind {kind} has no single `agent:`; use "
+                        f"/agents/<kind>/start instead"
+                    ),
+                }
+                await db.commit()
+        return
 
     try:
         env_host = (
@@ -243,6 +262,259 @@ async def stop_worker(session_id: str, app_state: AppState) -> None:
             await db.commit()
 
 
+# ---------------------------------------------------------------------------
+# Per-agent lifecycle (multi-agent plugins like `arcade`)
+# ---------------------------------------------------------------------------
+#
+# Single-agent plugins use start_worker/stop_worker above; the worker_status
+# column is the source of truth.
+#
+# Multi-agent plugins declare `agents:` map in their manifest. Each logical
+# agent runs in its own `agent-{session_id}-{kind}` container and has an entry
+# in `session.state["agents"][kind] = {status, container, exit_code?}`.
+# Status values: off | starting | running | paused | stopping | error.
+# The container is created without --rm so docker pause/unpause work; on stop
+# we explicitly `docker rm -f`.
+
+
+async def _set_agent_state(session_id: str, agent_kind: str, **fields: Any) -> None:
+    async with async_session_factory() as db:
+        sess = await db.get(Session, session_id)
+        if not sess:
+            return
+        state = dict(sess.state or {})
+        agents = dict(state.get("agents") or {})
+        entry = dict(agents.get(agent_kind) or {})
+        entry.update(fields)
+        agents[agent_kind] = entry
+        state["agents"] = agents
+        sess.state = state
+        await db.commit()
+
+
+async def start_agent(
+    session_id: str,
+    agent_kind: str,
+    api_key: str,
+    model: str | None,
+    task: str | None,
+    app_state: AppState,
+) -> None:
+    """Spawn (or resume) a per-agent container for a multi-agent plugin.
+
+    If the container already exists and is paused, unpause it. If it exists and
+    is running, no-op. Otherwise, fresh `docker run` (without --rm so we can
+    pause it later)."""
+    async with async_session_factory() as db:
+        sess = await db.get(Session, session_id)
+        if not sess or sess.slot is None:
+            raise RuntimeError(f"session {session_id} has no slot")
+        kind = sess.kind
+        slot = sess.slot
+
+    m = app_state.kinds[kind]
+    if not m.agents or agent_kind not in m.agents:
+        raise RuntimeError(f"kind {kind} has no agent named {agent_kind!r}")
+    spec = m.agents[agent_kind]
+    name = _agent_container_name(session_id, agent_kind)
+
+    state = await _container_state(name)
+    if state == "paused":
+        # If a task was supplied we always want a fresh container with the new
+        # TASK_HINT, so skip unpause and fall through to docker_stop + run.
+        if not task:
+            logging.info(f"[agent] unpausing {name}")
+            proc = await asyncio.create_subprocess_exec(
+                "docker", "unpause", name,
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+            )
+            _, err = await proc.communicate()
+            if proc.returncode == 0:
+                await _set_agent_state(session_id, agent_kind, status="running")
+                return
+            logging.warning(
+                f"[agent] unpause {name} failed ({(err or b'').decode().strip()}); restarting fresh"
+            )
+        await _docker_stop(name)
+    elif state == "running":
+        # No task means "make sure it's running" — keep the no-op fast path.
+        # With a task, we restart so the env var actually reaches the agent.
+        if not task:
+            return
+        logging.info(f"[agent] task supplied; restarting running {name} with new TASK_HINT")
+        await _docker_stop(name)
+    elif state in ("created", "exited", "dead"):
+        await _docker_stop(name)
+
+    env_host = (
+        _env_container_name(kind, slot)
+        if m.topology == "separate"
+        else (
+            config.STREAM_PUBLIC_HOST
+            if config.STREAM_AGENT_URL
+            else _stream_container_name(kind, slot)
+        )
+    )
+    ctx = manifest_svc.build_context(
+        slot=slot,
+        session_id=session_id,
+        kind=kind,
+        ports=m.ports,
+        env_host=env_host,
+        combined=(m.topology == "combined"),
+    )
+    ctx["anthropic_api_key"] = api_key
+    if model:
+        ctx["model"] = model
+    # Always set so manifests using `{task_hint}` interpolate to "" instead of
+    # leaking the literal placeholder when no task was supplied.
+    ctx["task_hint"] = task or ""
+
+    env = manifest_svc.interpolate_env(spec.env, ctx)
+    if task and "TASK_HINT" not in env:
+        env["TASK_HINT"] = task
+
+    await _set_agent_state(session_id, agent_kind, status="starting", container=name)
+    try:
+        await _docker_run(
+            name=name,
+            image=spec.image,
+            env=env,
+            volumes=spec.volumes or [],
+            remove=False,  # keep around so docker pause/unpause work
+        )
+        await _set_agent_state(session_id, agent_kind, status="running")
+        asyncio.create_task(_monitor_agent(session_id, agent_kind, app_state))
+    except Exception as e:
+        logging.exception(f"start_agent {name} failed")
+        await _set_agent_state(session_id, agent_kind, status="error", error=str(e))
+        await _docker_stop(name)
+
+
+async def stop_agent(session_id: str, agent_kind: str) -> None:
+    name = _agent_container_name(session_id, agent_kind)
+    await _set_agent_state(session_id, agent_kind, status="stopping")
+    await _docker_stop(name)
+    await _set_agent_state(session_id, agent_kind, status="off")
+
+
+async def pause_agent(session_id: str, agent_kind: str) -> None:
+    name = _agent_container_name(session_id, agent_kind)
+    state = await _container_state(name)
+    if state != "running":
+        return
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "pause", name,
+        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+    )
+    _, err = await proc.communicate()
+    if proc.returncode != 0:
+        msg = (err or b"").decode().strip()
+        logging.warning(f"[agent] pause {name} failed: {msg}")
+        return
+    await _set_agent_state(session_id, agent_kind, status="paused")
+
+
+async def resume_agent(
+    session_id: str,
+    agent_kind: str,
+    api_key: str,
+    model: str | None,
+    app_state: AppState,
+) -> None:
+    """Unpause; if that fails, fall through to a fresh spawn via start_agent."""
+    name = _agent_container_name(session_id, agent_kind)
+    state = await _container_state(name)
+    if state == "paused":
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "unpause", name,
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+        )
+        await proc.communicate()
+        if proc.returncode == 0:
+            await _set_agent_state(session_id, agent_kind, status="running")
+            return
+    # Either not paused (already running, or exited), or unpause failed.
+    await start_agent(session_id, agent_kind, api_key, model, None, app_state)
+
+
+async def _monitor_agent(session_id: str, agent_kind: str, app_state: AppState) -> None:
+    """Flip per-agent status when the container exits. Pauses don't trip this —
+    only an actual `exited`/`dead` state does."""
+    name = _agent_container_name(session_id, agent_kind)
+    while True:
+        state = await _container_state(name)
+        if state in (None, "exited", "dead"):
+            break
+        await asyncio.sleep(5)
+
+    exit_code = 0
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "inspect", "-f", "{{.State.ExitCode}}", name,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+    )
+    out, _ = await proc.communicate()
+    try:
+        exit_code = int(out.decode().strip() or "0")
+    except ValueError:
+        pass
+
+    fields: dict[str, Any] = {
+        "status": "error" if exit_code != 0 else "off",
+        "exit_code": exit_code,
+    }
+    await _set_agent_state(session_id, agent_kind, **fields)
+
+
+async def reap_session_agents(session_id: str) -> None:
+    """Force-remove every agent-{session_id}-* container. Called from teardown."""
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "ps", "-aq", "--filter", f"name=^agent-{session_id}-",
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+    )
+    out, _ = await proc.communicate()
+    ids = [i for i in out.decode().split() if i]
+    if not ids:
+        return
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "rm", "-f", *ids,
+        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+    )
+    await proc.wait()
+
+
+async def workspace_switch(
+    session_id: str,
+    workspace: int,
+    app_state: AppState,
+) -> None:
+    """Tell the stream-client to switch its X11 workspace. Used by multi-agent
+    plugins like `arcade` whose stream-client runs an openbox WM with multiple
+    desktops. Records `state["current_workspace"]` for the frontend."""
+    async with async_session_factory() as db:
+        sess = await db.get(Session, session_id)
+        if not sess or sess.slot is None:
+            raise RuntimeError(f"session {session_id} has no slot")
+        kind = sess.kind
+        slot = sess.slot
+
+    container = _stream_container_name(kind, slot)
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "exec", container, "wmctrl", "-s", str(workspace),
+        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+    )
+    _, err = await proc.communicate()
+    if proc.returncode != 0:
+        msg = (err or b"").decode().strip()
+        raise RuntimeError(f"workspace switch failed: {msg}")
+
+    async with async_session_factory() as db:
+        sess = await db.get(Session, session_id)
+        if sess:
+            sess.state = {**(sess.state or {}), "current_workspace": workspace}
+            await db.commit()
+
+
 async def _monitor_worker(session_id: str, app_state: AppState) -> None:
     """Flip worker_status when the agent container exits. Does NOT teardown
     the session — env + stream-client + vtuber keep running."""
@@ -300,6 +572,7 @@ async def teardown_session(
     m = app_state.kinds.get(kind)
 
     await _docker_stop(_agent_container_name(session_id))
+    await reap_session_agents(session_id)
     if slot is not None:
         await streaming_svc.stop_stream_client(kind, slot)
         if m and m.topology == "separate":

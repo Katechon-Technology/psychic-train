@@ -1,0 +1,87 @@
+name: arcade
+display_name: Arcade
+description: "Three-workspace shared desktop. Hub lobby + Minecraft + Playwright news, switched on demand by the viewer. Agents pause when their workspace isn't visible."
+
+# `topology: separate` — env-arcade-{slot} is the persistent Minecraft server.
+# The Playwright "env" lives inside the stream-client itself (an embedded
+# fastify on port 8731 + a Chromium window pinned to workspace 2). The shared
+# stream-client is a single Xvfb display with openbox configured for 3
+# desktops; ffmpeg captures the whole display so workspace switches are
+# zero-cost — no stream restart, no segment break.
+topology: separate
+max_concurrent: 1   # heavy: JVM + 2 Chromiums + ffmpeg under one Xvfb
+
+ports:
+  - { name: game,    protocol: tcp, base: 25565 }   # MC server (env)
+  - { name: pwapi,   protocol: tcp, base: 8731  }   # Playwright fastify (in stream-client)
+  - { name: control, protocol: tcp, base: 8780  }   # arcade control server (in stream-client)
+
+environment:
+  image: psychic-train/minecraft-env:latest          # reused as-is
+  env:
+    EULA: "true"
+  volumes:
+    - { name: psychic_train_minecraft_server, mount: /srv/minecraft }
+  healthcheck:
+    type: tcp_port
+    port: "{game_internal}"
+    timeout_seconds: 240
+
+# Multi-agent plugin. Each entry becomes a container `agent-{session_id}-{key}`
+# that the broker spawns/pauses/resumes via /api/sessions/{id}/agents/{kind}/...
+agents:
+  minecraft:
+    image: psychic-train/minecraft-agent:latest
+    env:
+      SESSION_ID: "{session_id}"
+      BROKER_URL: "{broker_url}"
+      BROKER_API_KEY: "{broker_api_key}"
+      ENV_HOST: "{env_host}"            # env-arcade-{slot}
+      GAME_PORT: "{game_internal}"
+      ANTHROPIC_API_KEY: "{anthropic_api_key}"
+      MODEL: "{model}"
+      USERNAME: "ClaudeBot"
+      VIEWER_USERNAME: "Spectator"
+      # Forwarded from the frontend's task box; agent rewrites its seed
+      # prompt around this when non-empty. Broker also injects this
+      # automatically when a task is supplied to /agents/minecraft/start.
+      TASK_HINT: "{task_hint}"
+  playwright:
+    # Arcade-specific: Claude-driven loop that reads TASK_HINT, unlike the
+    # base playwright-browser-agent (hardcoded news doomscroll). The viewer's
+    # task box in the frontend is forwarded here as TASK_HINT on each restart.
+    image: psychic-train/arcade-playwright-agent:latest
+    env:
+      SESSION_ID: "{session_id}"
+      BROKER_URL: "{broker_url}"
+      BROKER_API_KEY: "{broker_api_key}"
+      # The fastify control server lives inside the arcade stream-client (this
+      # plugin's stream_client image). It's NOT in env-arcade-{slot}; that's
+      # only the Minecraft server. So we point ENV_HOST at the stream-client
+      # container directly.
+      ENV_HOST: "stream-client-arcade-{slot}"
+      API_PORT: "{pwapi_internal}"
+      ANTHROPIC_API_KEY: "{anthropic_api_key}"
+      MODEL: "{model}"
+      # TASK_HINT is also injected by the broker when the viewer hits Send;
+      # listed here so a manifest-only inspection makes the contract obvious.
+      TASK_HINT: "{task_hint}"
+
+stream_client:
+  image: psychic-train/arcade-stream-client:latest
+  display:
+    width: 1280
+    height: 720
+    fps: 20
+  # Same Minecraft client volume as the minecraft plugin uses — populated
+  # from plugin-data/minecraft/ via the minecraft-client-init compose service.
+  volumes:
+    - { name: psychic_train_minecraft_client, mount: /opt/mc-data, readonly: true }
+  env:
+    MC_HOST: "{env_host}"
+    MC_PORT: "{game_internal}"
+    MC_VERSION: "1.21.1"
+    VIEWER_USERNAME: "Spectator"
+    CTRL_PORT: "{control_internal}"
+    PW_PORT: "{pwapi_internal}"
+    STREAM_WARMUP_SECONDS: "20"

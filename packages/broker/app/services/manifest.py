@@ -67,7 +67,10 @@ class Manifest:
     max_concurrent: int
     ports: list[PortSpec]
     environment: ContainerSpec | None  # None when topology=="combined"
-    agent: ContainerSpec
+    # Single-agent plugins set `agent`; multi-agent plugins (e.g. `arcade`) set
+    # `agents` (a name→spec map). Exactly one is non-None — enforced in parse.
+    agent: ContainerSpec | None
+    agents: dict[str, ContainerSpec] | None
     stream_client: StreamClientSpec
     narration: NarrationSpec | None = None  # None ⇒ no avatar overlay for this kind
 
@@ -116,6 +119,20 @@ def parse_manifest(path: Path) -> Manifest:
     topology = data.get("topology", "separate")
     ports = [PortSpec(**p) for p in data.get("ports", [])]
     env_spec = _parse_container(data["environment"]) if topology == "separate" else None
+
+    has_agent = "agent" in data
+    has_agents = "agents" in data
+    if has_agent and has_agents:
+        raise ValueError(f"{path}: manifest declares both `agent:` and `agents:` — pick one")
+    if not has_agent and not has_agents:
+        raise ValueError(f"{path}: manifest must declare either `agent:` or `agents:`")
+    agent_spec = _parse_container(data["agent"]) if has_agent else None
+    agents_spec = (
+        {name: _parse_container(spec) for name, spec in data["agents"].items()}
+        if has_agents
+        else None
+    )
+
     return Manifest(
         name=data["name"],
         display_name=data.get("display_name", data["name"]),
@@ -124,7 +141,8 @@ def parse_manifest(path: Path) -> Manifest:
         max_concurrent=int(data.get("max_concurrent", 3)),
         ports=ports,
         environment=env_spec,
-        agent=_parse_container(data["agent"]),
+        agent=agent_spec,
+        agents=agents_spec,
         stream_client=_parse_stream_client(data["stream_client"]),
         narration=_parse_narration(data.get("narration")),
     )

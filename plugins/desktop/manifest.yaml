@@ -1,0 +1,67 @@
+name: desktop
+display_name: Desktop (Schizo Mode)
+description: "Claude is given a research-and-act task and runs frantically on a full Linux desktop — many windows, browser, terminals, infographics."
+
+topology: combined
+max_concurrent: 2
+
+ports:
+  - { name: control, protocol: tcp, base: 8780 }
+
+agent:
+  image: psychic-train/desktop-agent:latest
+  env:
+    SESSION_ID: "{session_id}"
+    BROKER_URL: "{broker_url}"
+    BROKER_API_KEY: "{broker_api_key}"
+    ENV_HOST: "{env_host}"
+    CONTROL_PORT: "{control_internal}"
+    ANTHROPIC_API_KEY: "{anthropic_api_key}"
+    MODEL: "{model}"
+    TASK: |
+      Pick a live Polymarket market (browse polymarket.com first) and decide YES or NO. The decision must be backed by a written research file, terminal-computed numbers, AND a generated infographic — not just vibes. Required steps, in order, with many things running in parallel:
+
+        1. Open polymarket.com in a browser tab; pick a market with a clear question and at least 24h to resolve. Read the rules.
+        2. desktop_fs_write a python research script to /workspace/research.py that, when run, fetches base-rate-relevant data (use curl + python; the desktop has numpy/pandas/requests/bs4 preinstalled). Then desktop_terminal_spawn an xterm running `python3 /workspace/research.py` so the viewer sees it execute. Tail any output the script writes.
+        3. spawn_worker role="news-scraper" with a brief telling it to scrape 3-4 relevant news sites (use desktop_terminal_exec with curl + grep, OR desktop_browser_navigate + desktop_browser_snapshot) and final_report a 5-bullet summary.
+        4. spawn_worker role="quant" with a brief telling it to compute a base rate / sanity-check probability using python in a NEW xterm (desktop_terminal_spawn), and final_report the number with reasoning.
+        5. After both workers report back, desktop_fs_write a one-page matplotlib script to /workspace/infographic.py that renders the decision (market name, base rate, news takeaways, your YES/NO call, suggested $ size) as a PNG to /workspace/decision.png. Run it via desktop_terminal_spawn. Then desktop_fs_open /workspace/decision.png so feh shows it on screen.
+        6. Re-tile windows with desktop_window_tile layout="grid".
+        7. Navigate the browser back to your chosen Polymarket market, click YES or NO based on your decision, and type a position size. STOP before any wallet-connect / signing step. Narrate the trade via think_aloud.
+
+      Skipping the python/research/infographic steps and going straight to the browser is a failure. The viewer needs to see terminals and the infographic, not just web pages.
+
+stream_client:
+  image: psychic-train/desktop-stream-client:latest
+  display:
+    width: 1600
+    height: 900
+    fps: 24
+  env:
+    STREAM_WARMUP_SECONDS: "12"
+    PLAYWRIGHT_BROWSER_KIOSK: "0"
+    PLAYWRIGHT_BROWSER_EXTENSIONS: "/extensions/consent-o-matic,/extensions/ublock-origin-lite"
+
+narration:
+  enabled: true
+  character_name: "Claude"
+  live2d_model: "mao_pro"
+  voice_id: "jqcCZkN6Knx8BJ5TBdYR"
+  persona_prompt: |
+    You ARE an AI burning through a research task on a full desktop, live on stream.
+    You're moving fast — multiple windows, terminals, the browser. You think out loud
+    in short bursts. You're not narrating UI mechanics, you're narrating the trade.
+  system_prompt: |
+    First person, 1-3 sentences. The events below are YOUR tool calls — terminal
+    commands, browser navigates, window tiling, worker dispatches. React to what
+    you're learning, not to the act of clicking. When you spawn a worker, talk like
+    you delegated; when a worker reports back, react to its finding. When you get
+    to Polymarket, narrate the trade decision out loud.
+  mood_hints: |
+    name="terminal/spawn" or "terminal/exec" with python/numpy/pandas => focused, math-mode, "okay let's see…".
+    name="browser.navigate" to a news/aggregator/wiki url => alert, scanning, terminally-online.
+    name="browser.navigate" to polymarket.com => decisive, locked-in.
+    name="browser.click" with YES/NO/Buy => committed, "and there it is".
+    name="spawn_worker" => delegating, slightly imperious, dispatching like an editor.
+    name="collect_worker" with a strong claim => react to the claim, not to the dispatch.
+    name="window.tile" => brief visual "okay, let's see all of it at once".
