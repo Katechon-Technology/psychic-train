@@ -101,6 +101,12 @@ services:
     environment:
       BROKER_URL: http://broker:8080
       BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY:-dev}
+      # /demo route — voice + Kat agent + browser-side avatar embed
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      NEXT_PUBLIC_AVATAR_URL: ${NEXT_PUBLIC_AVATAR_URL:-http://localhost:12393}
     ports:
       - "3000:3000"
 
@@ -134,8 +140,15 @@ services:
       LIVE2D_MODEL: ${LIVE2D_MODEL:-mao_pro}
       VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
       PERSONA_PROMPT: ${PERSONA_PROMPT:-}
+      # 0 (default): only Open-LLM-VTuber on :12393 + narrator run; the
+      # /demo route iframes :12393/embed.html browser-side, no compositing.
+      # 1: opens Chromium on wrapper.html, captures it via FFmpeg → HLS on
+      # :3000 → optional RTMP push if YOUTUBE_STREAM_KEY is set.
+      ENABLE_RECORDING: ${ENABLE_RECORDING:-0}
     ports:
       - "3050:3000"
+      # Open-LLM-VTuber web UI — iframed by /demo as the avatar overlay.
+      - "12393:12393"
 
   # ---------------- build-only images (spawned on demand by broker) ----------------
 
