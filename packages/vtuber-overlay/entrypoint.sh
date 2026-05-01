@@ -33,6 +33,12 @@ DISPLAY_WIDTH="${DISPLAY_WIDTH:-1920}"
 DISPLAY_HEIGHT="${DISPLAY_HEIGHT:-1080}"
 DISPLAY_FPS="${DISPLAY_FPS:-30}"
 VTUBER_AUDIO_DEBUG="${VTUBER_AUDIO_DEBUG:-0}"
+# When 1, run the full compositing pipeline: open Chromium on wrapper.html,
+# capture it with FFmpeg, serve HLS via nginx on :3000, and (if
+# YOUTUBE_STREAM_KEY is set) push RTMP. When 0 (default), only the avatar
+# server on :12393 + narrator run, and the browser embeds :12393/embed.html
+# directly.
+ENABLE_RECORDING="${ENABLE_RECORDING:-0}"
 
 # envsubst-friendly exports (wrapper + conf templates use these)
 export CHARACTER_NAME="${CHARACTER_NAME:-Claude}"
@@ -184,6 +190,17 @@ envsubst < /wrapper.html > /var/www/html/index.html
 log "serving wrapper on :3001..."
 cd /var/www/html && python3 -m http.server 3001 >/dev/null 2>&1 &
 HTTP_PID=$!
+
+if [ "$ENABLE_RECORDING" != "1" ]; then
+    log "ENABLE_RECORDING=0 — Chromium / FFmpeg / nginx / RTMP skipped. Avatar UI on :12393."
+    while true; do
+        kill -0 "$XVFB_PID" 2>/dev/null || { log "Xvfb died"; cleanup; exit 1; }
+        if [ -n "$VTUBER_PID" ]; then
+            kill -0 "$VTUBER_PID" 2>/dev/null || { log "VTuber server died"; cleanup; exit 1; }
+        fi
+        sleep 5
+    done
+fi
 
 # ---------- 7. Chromium kiosk ----------
 log "Chromium kiosk -> http://localhost:3001/"

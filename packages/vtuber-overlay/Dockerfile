@@ -35,20 +35,39 @@ RUN wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-
 # uv (modern Python package manager)
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Open-LLM-VTuber at pinned commit — same as claudetorio (19b58b1 has ElevenLabs)
+# Open-LLM-VTuber at pinned commit — same as claudetorio (19b58b1 has ElevenLabs).
+# Split into two RUNs so a stalled submodule clone doesn't blow away the parent
+# checkout layer, and so we can retry just the submodule step. Fail fast on
+# stalled HTTP rather than hanging the build for 20+ minutes.
+ENV GIT_TERMINAL_PROMPT=0 \
+    GIT_HTTP_LOW_SPEED_LIMIT=1000 \
+    GIT_HTTP_LOW_SPEED_TIME=60
+
 RUN git init /app/vtuber \
     && cd /app/vtuber \
     && git remote add origin https://github.com/Open-LLM-VTuber/Open-LLM-VTuber \
-    && git fetch --depth 1 origin 19b58b1f6c01e082289fce089392997b9d14fbc4 \
-    && git checkout FETCH_HEAD \
-    && git submodule update --init --recursive
+    && git fetch --depth 1 --no-tags origin 19b58b1f6c01e082289fce089392997b9d14fbc4 \
+    && git checkout FETCH_HEAD
+
+# Submodules: only one (frontend → Open-LLM-VTuber-Web@build, ~tens of MB of
+# built assets). --depth 1 + --jobs avoid pulling its full history.
+RUN cd /app/vtuber \
+    && git submodule init \
+    && git submodule update --depth 1 --jobs 4 --recursive
 
 # Patches: adds /api/speak and /api/speak/status; transparent embed.html
 COPY packages/vtuber-overlay/patches/routes.py /app/vtuber/src/open_llm_vtuber/routes.py
 COPY packages/vtuber-overlay/patches/embed.html /app/vtuber/frontend/embed.html
 
-# Python deps for Open-LLM-VTuber
-RUN cd /app/vtuber && uv sync --frozen --no-dev
+# Python deps for Open-LLM-VTuber. open-llm-vtuber pulls torch + CUDA wheels
+# (triton, nvidia-nccl-cu12, etc., hundreds of MiB), and a single connection
+# reset mid-download blows the whole step. Retry with a longer per-request
+# timeout + lower concurrency, and persist uv's download cache across
+# rebuilds so retries pick up where they left off.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd /app/vtuber \
+    && UV_HTTP_TIMEOUT=600 UV_CONCURRENT_DOWNLOADS=2 \
+       sh -c 'for i in 1 2 3 4 5; do uv sync --frozen --no-dev && exit 0; echo "uv sync attempt $i failed; retrying..."; sleep 10; done; exit 1'
 
 # hls.js for the wrapper page's HLS iframe
 RUN mkdir -p /var/www/html \

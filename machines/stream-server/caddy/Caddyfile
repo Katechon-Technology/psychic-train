@@ -19,6 +19,14 @@
 		reverse_proxy vtuber-overlay:3000
 	}
 
+	# Browser-side avatar UI at avatar.<domain> — Open-LLM-VTuber on :12393.
+	# The /demo page iframes /embed.html from this host; transparent canvas
+	# only (see packages/vtuber-overlay/patches/embed.html).
+	@avatarPersistent header host avatar.{$STREAM_DOMAIN}
+	handle @avatarPersistent {
+		reverse_proxy vtuber-overlay:12393
+	}
+
 	# Plugin stream-client preview at <kind><slot>.<domain> — used by the
 	# frontend's session view as the raw game footage URL.
 	@streamMatch header_regexp host Host ^([a-z0-9-]+?)([0-9]+)\.
