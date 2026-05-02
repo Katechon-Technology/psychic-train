@@ -41,10 +41,14 @@ VTUBER_AUDIO_DEBUG="${VTUBER_AUDIO_DEBUG:-0}"
 ENABLE_RECORDING="${ENABLE_RECORDING:-0}"
 
 # envsubst-friendly exports (wrapper + conf templates use these)
-export CHARACTER_NAME="${CHARACTER_NAME:-Claude}"
+export CHARACTER_NAME="${CHARACTER_NAME:-Kat}"
 export LIVE2D_MODEL="${LIVE2D_MODEL:-mao_pro}"
 export VOICE_ID="${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}"
-export PERSONA_PROMPT="$(echo "${PERSONA_PROMPT:-You are an AI VTuber commentating on an autonomous AI agent. Be entertaining and concise.}" | tr '\n' ' ')"
+# Default persona ported from katechon-demo/server.js:247-251 — same Kat that
+# runs the voice command path on /demo. The narrator role is broader than
+# routing transcripts (it commentates on whatever the active workspace is
+# doing), so the prompt is trimmed to describe Kat's voice + personality.
+export PERSONA_PROMPT="$(echo "${PERSONA_PROMPT:-You are Kat, the VTuber agent watching an autonomous AI run on a remote Linux desktop. Snappy, real reactions, no cringe, 1-2 sentences at a time.}" | tr '\n' ' ')"
 export BROKER_URL
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 export ELEVENLABS_API_KEY="${ELEVENLABS_API_KEY:-}"

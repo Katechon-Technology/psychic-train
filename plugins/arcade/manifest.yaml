@@ -9,7 +9,10 @@ description: "Three-workspace shared desktop. Hub lobby + Minecraft + Playwright
 # desktops; ffmpeg captures the whole display so workspace switches are
 # zero-cost — no stream restart, no segment break.
 topology: separate
-max_concurrent: 1   # heavy: JVM + 2 Chromiums + ffmpeg under one Xvfb
+# 2 slots: one for /kind/arcade visitors, one reserved for /demo. Each
+# session is heavy (JVM + 2 Chromiums + ffmpeg under one Xvfb) but two
+# fits on a dev box. Bumping past 2 means the host needs more RAM.
+max_concurrent: 2
 
 ports:
   - { name: game,    protocol: tcp, base: 25565 }   # MC server (env)

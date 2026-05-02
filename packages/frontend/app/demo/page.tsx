@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import DemoView from "./DemoView";
+import DemoView, { type AvatarOverrides } from "./DemoView";
 import type { SessionInfo } from "../../lib/api";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,29 @@ async function fetchActive(): Promise<SessionInfo> {
   return r.json();
 }
 
-export default async function DemoPage() {
+function pickOne(value: string | string[] | undefined, max = 1000): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (!v) return undefined;
+  // Strip control chars + cap length so a malicious URL can't bloat the
+  // system prompt or break the iframe URL.
+  const cleaned = v.replace(/[\x00-\x1f\x7f]/g, "").trim();
+  if (!cleaned) return undefined;
+  return cleaned.slice(0, max);
+}
+
+export default async function DemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const avatarOverrides: AvatarOverrides = {
+    character: pickOne(sp.character, 64),
+    model: pickOne(sp.model, 64),
+    voice: pickOne(sp.voice, 64),
+    persona: pickOne(sp.persona, 2000),
+  };
+
   let session: SessionInfo;
   try {
     session = await fetchActive();
@@ -43,5 +65,11 @@ export default async function DemoPage() {
       </main>
     );
   }
-  return <DemoView initialSession={session} avatarUrl={PUBLIC_AVATAR_URL} />;
+  return (
+    <DemoView
+      initialSession={session}
+      avatarUrl={PUBLIC_AVATAR_URL}
+      avatarOverrides={avatarOverrides}
+    />
+  );
 }

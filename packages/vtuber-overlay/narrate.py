@@ -157,6 +157,28 @@ def get_active_session_id() -> str | None:
     return None
 
 
+# Multi-agent plugins like `arcade` keep a single session but switch X11
+# workspaces; the narrator must reset memory + skip stale events when this
+# changes, otherwise the avatar keeps talking about the previous workspace.
+WORKSPACE_LABELS: dict[int, str] = {
+    0: "Hub (lobby — no agent active)",
+    1: "Minecraft (a bot wandering and mining)",
+    2: "Playwright browser (web automation / news feeds)",
+}
+
+
+def get_current_workspace(session_id: str) -> int | None:
+    try:
+        with urllib.request.urlopen(
+            f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}", timeout=10
+        ) as r:
+            data = json.loads(r.read())
+    except Exception as e:
+        print(f"  [warn] session fetch failed: {e}", file=sys.stderr)
+        return None
+    return (data.get("state") or {}).get("current_workspace")
+
+
 def fetch_events(session_id: str, after_id: int, limit: int = 50) -> list[dict]:
     url = f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}/events?after={after_id}&limit={limit}"
     try:
@@ -332,10 +354,21 @@ def tangent(state: NarrationState) -> str:
     return call_claude(system_with_mood("philosophical"), build_messages(state, user))
 
 
-def session_intro(state: NarrationState, session_id: str) -> str:
+def session_intro(
+    state: NarrationState, session_id: str, workspace: int | None = None
+) -> str:
+    if workspace is None:
+        ctx = "You just started a new task."
+    else:
+        label = WORKSPACE_LABELS.get(workspace, f"workspace {workspace}")
+        ctx = (
+            "The viewer just switched the stream to a different workspace: "
+            f"{label}. Drop the previous topic entirely and pick up here."
+        )
     user = (
-        f"You just started a new task — session {session_id}. "
-        "Intro yourself for the stream as you pick this up. 1-2 sentences."
+        f"{ctx} Session {session_id}. Intro this moment for the stream like "
+        "you're switching gears. 1-2 sentences. Do NOT reference what you "
+        "were just talking about."
     )
     return call_claude(system_with_mood("hyped"), [{"role": "user", "content": user}])
 
@@ -365,23 +398,40 @@ def run() -> None:
 
     state = NarrationState()
     active_session_id: str | None = None
+    active_workspace: int | None = None
     last_event_id: int = 0
     print("  entering narration loop\n")
 
     while True:
-        # Re-check which session (if any) is currently being streamed.
+        # Re-check which session (if any) is currently being streamed AND
+        # which workspace within that session (multi-agent plugins like
+        # `arcade` keep one session but flip workspaces — narrator must
+        # reset memory + skip stale events on workspace flip too).
         new_active = get_active_session_id()
+        new_workspace = (
+            get_current_workspace(new_active) if new_active else None
+        )
 
-        if new_active != active_session_id:
-            print(f"  [switch] active session: {active_session_id} -> {new_active}")
+        session_changed = new_active != active_session_id
+        workspace_changed = (
+            new_active is not None
+            and new_workspace != active_workspace
+        )
+
+        if session_changed or workspace_changed:
+            print(
+                f"  [switch] session: {active_session_id} -> {new_active}, "
+                f"workspace: {active_workspace} -> {new_workspace}"
+            )
             state = NarrationState()
             active_session_id = new_active
+            active_workspace = new_workspace
             if new_active is None:
                 last_event_id = 0
             else:
                 last_event_id = fast_forward_event_id(new_active)
                 try:
-                    intro = session_intro(state, new_active)
+                    intro = session_intro(state, new_active, new_workspace)
                     if intro:
                         speak(intro)
                         state.add_narration(intro)
@@ -401,8 +451,11 @@ def run() -> None:
         slept = 0.0
         buf: list[dict] = []
         while slept < pause:
-            # Bail out early if the active session changed under us.
-            if get_active_session_id() != active_session_id:
+            # Bail out early if the active session OR workspace changed.
+            cur_active = get_active_session_id()
+            if cur_active != active_session_id:
+                break
+            if cur_active is not None and get_current_workspace(cur_active) != active_workspace:
                 break
             rows = fetch_events(active_session_id, after_id=last_event_id)
             if rows:

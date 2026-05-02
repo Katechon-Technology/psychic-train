@@ -11,6 +11,7 @@ type Workspace = {
   agentKind: "minecraft" | "playwright" | null;
   label: string;
   thumb: { kind: "img" | "video"; src: string };
+  task?: string;
 };
 
 const WORKSPACES: Workspace[] = [
@@ -20,6 +21,7 @@ const WORKSPACES: Workspace[] = [
     agentKind: "playwright",
     label: "OSINT / SPECTRE",
     thumb: { kind: "video", src: "/demo/videos/spectre.mp4" },
+    task: "Browse OSINT / open-source intelligence dashboards. Look for interesting public data on companies, public figures, or current events. Narrate what you find.",
   },
   {
     id: "minecraft",
@@ -34,22 +36,32 @@ const WORKSPACES: Workspace[] = [
     agentKind: "playwright",
     label: "AI News Feed",
     thumb: { kind: "video", src: "/demo/videos/news.mp4" },
+    task: "Doomscroll the latest AI news. Open one or two of: Hacker News, TechCrunch AI section, The Verge AI tag, ArsTechnica AI tag. Read headlines and skim articles.",
   },
 ];
 
 type AgentCommand = {
-  action: "switch" | "unknown";
+  action: "switch" | "home" | "unknown";
   workspace: string | null;
   speech: string;
   audio?: string;
 };
 
+export type AvatarOverrides = {
+  character?: string;
+  model?: string;
+  voice?: string;
+  persona?: string;
+};
+
 export default function DemoView({
   initialSession,
   avatarUrl,
+  avatarOverrides = {},
 }: {
   initialSession: SessionInfo;
   avatarUrl: string;
+  avatarOverrides?: AvatarOverrides;
 }) {
   const [session, setSession] = useState<SessionInfo>(initialSession);
   const [statusText, setStatusText] = useState("connecting...");
@@ -57,11 +69,11 @@ export default function DemoView({
   const [busyWs, setBusyWs] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<{ text: string; color: string } | null>(null);
   const [listening, setListening] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const livestreamKickedOff = useRef(false);
-  const agentsKickedOff = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -134,19 +146,6 @@ export default function DemoView({
     fetch(`/api/sessions/${session.id}/livestream/start`, { method: "POST" }).catch(() => {});
   }, [session.id, session.status, session.stream_url, session.livestream_status]);
 
-  // Once the session is ready, ask the server to start any arcade agents that
-  // aren't already running, using the broker's own ANTHROPIC_API_KEY.
-  useEffect(() => {
-    if (agentsKickedOff.current) return;
-    if (!session.stream_url || !["waiting", "running"].includes(session.status)) return;
-    agentsKickedOff.current = true;
-    fetch(`/api/demo/agents-ensure`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ session_id: session.id }),
-    }).catch(() => {});
-  }, [session.id, session.status, session.stream_url]);
-
   // ---- Toast helper ------------------------------------------------------
   function showToast(text: string, color = "#e8e8ec") {
     setTranscript({ text, color });
@@ -160,16 +159,32 @@ export default function DemoView({
     setBusyWs(ws.id);
     setActiveWs(ws.id);
     try {
-      const r = await fetch(`/api/sessions/${session.id}/workspace/switch`, {
+      const swR = await fetch(`/api/sessions/${session.id}/workspace/switch`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ workspace: ws.index }),
       });
-      if (!r.ok) {
-        const text = await r.text().catch(() => "");
-        showToast(`switch failed: ${text.slice(0, 80) || r.status}`, "#ff4444");
+      if (!swR.ok) {
+        const text = await swR.text().catch(() => "");
+        showToast(`switch failed: ${text.slice(0, 80) || swR.status}`, "#ff4444");
         return;
       }
+      // Pause every other agent and start (or resume) this workspace's
+      // agent. Server-side route uses the broker's ANTHROPIC_API_KEY so
+      // the demo doesn't need any per-visitor credentials.
+      fetch(`/api/demo/agents/select`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          session_id: session.id,
+          agent_kind: ws.agentKind,
+          task: ws.task,
+        }),
+      }).catch(() => {});
+      // Match the original katechon-demo (index.html:248): hide the menu
+      // overlay so the viewer sees just the stream + avatar after picking
+      // a workspace. The bottom-left menu button brings it back.
+      setShowOverlay(false);
     } finally {
       setBusyWs(null);
     }
@@ -236,18 +251,38 @@ export default function DemoView({
     const r = await fetch("/api/demo/agent", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ transcript: text, session_id: session.id }),
+      body: JSON.stringify({
+        transcript: text,
+        session_id: session.id,
+        ...avatarOverrides,
+      }),
     });
     if (!r.ok) {
       showToast(`agent error (${r.status})`, "#ff4444");
       return;
     }
     const cmd = (await r.json()) as AgentCommand;
-    if (cmd.speech) showToast(`Kat: ${cmd.speech}`, "#00e87b");
+    const heroName = avatarOverrides.character || "Kat";
+    if (cmd.speech) showToast(`${heroName}: ${cmd.speech}`, "#00e87b");
     // Apply workspace switch (if any) before the speech finishes.
     if (cmd.action === "switch" && cmd.workspace) {
       const target = WORKSPACES.find((w) => w.id === cmd.workspace);
       if (target) switchWs(target);
+    } else if (cmd.action === "home") {
+      setShowOverlay(true);
+      setActiveWs(null);
+      // Hub workspace = 0; pause every agent so the stream just shows the
+      // lobby graphic.
+      fetch(`/api/sessions/${session.id}/workspace/switch`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workspace: 0 }),
+      }).catch(() => {});
+      fetch(`/api/demo/agents/select`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session_id: session.id, agent_kind: null }),
+      }).catch(() => {});
     }
     if (cmd.audio) {
       playBase64(cmd.audio).catch((err) => {
@@ -320,6 +355,20 @@ export default function DemoView({
   const previewReady =
     !!session.stream_url && ["waiting", "running"].includes(session.status);
 
+  // Iframe URL carries any avatar overrides as query params. Open-LLM-VTuber's
+  // bundled embed.html may ignore unknown keys today, but threading them
+  // through means a future patches/embed.html can read them without touching
+  // this component again.
+  const avatarSrc = (() => {
+    const base = `${avatarUrl.replace(/\/$/, "")}/embed.html`;
+    const qs = new URLSearchParams();
+    if (avatarOverrides.character) qs.set("character", avatarOverrides.character);
+    if (avatarOverrides.model) qs.set("model", avatarOverrides.model);
+    if (avatarOverrides.voice) qs.set("voice", avatarOverrides.voice);
+    const tail = qs.toString();
+    return tail ? `${base}?${tail}` : base;
+  })();
+
   return (
     <div className={styles.root}>
       <video
@@ -332,7 +381,7 @@ export default function DemoView({
 
       <iframe
         className={styles.avatarFrame}
-        src={`${avatarUrl.replace(/\/$/, "")}/embed.html`}
+        src={avatarSrc}
         title="VTuber avatar"
         allow="autoplay"
       />
@@ -341,28 +390,41 @@ export default function DemoView({
         {previewReady ? statusText : `spinning up… (${session.status})`}
       </div>
 
-      <div className={`${styles.overlay} ${styles.mainOverlay}`}>
-        <div className={styles.mainTitle}>Katechon Technology</div>
-        <div className={styles.mainSub}>24hr interactive livestream</div>
-        <div className={styles.gifRow}>
-          {WORKSPACES.map((ws) => (
-            <button
-              key={ws.id}
-              type="button"
-              onClick={() => switchWs(ws)}
-              disabled={busyWs !== null || !previewReady}
-              className={`${styles.gifBox} ${activeWs === ws.id ? styles.active : ""}`}
-            >
-              {ws.thumb.kind === "video" ? (
-                <video src={ws.thumb.src} autoPlay muted loop playsInline preload="metadata" />
-              ) : (
-                <img src={ws.thumb.src} alt={ws.label} />
-              )}
-              <div className={styles.gifLabel}>{ws.label}</div>
-            </button>
-          ))}
+      {showOverlay && (
+        <div className={`${styles.overlay} ${styles.mainOverlay}`}>
+          <div className={styles.mainTitle}>Katechon Technology</div>
+          <div className={styles.mainSub}>24hr interactive livestream</div>
+          <div className={styles.gifRow}>
+            {WORKSPACES.map((ws) => (
+              <button
+                key={ws.id}
+                type="button"
+                onClick={() => switchWs(ws)}
+                disabled={busyWs !== null || !previewReady}
+                className={`${styles.gifBox} ${activeWs === ws.id ? styles.active : ""}`}
+              >
+                {ws.thumb.kind === "video" ? (
+                  <video src={ws.thumb.src} autoPlay muted loop playsInline preload="metadata" />
+                ) : (
+                  <img src={ws.thumb.src} alt={ws.label} />
+                )}
+                <div className={styles.gifLabel}>{ws.label}</div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!showOverlay && (
+        <button
+          type="button"
+          className={styles.menuBtn}
+          onClick={() => setShowOverlay(true)}
+          aria-label="Show menu"
+        >
+          ≡ MENU
+        </button>
+      )}
 
       {transcript && (
         <div
