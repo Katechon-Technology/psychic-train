@@ -48,10 +48,17 @@ export PERSONA_PROMPT="$(echo "${PERSONA_PROMPT:-You are an AI VTuber commentati
 export BROKER_URL
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 export ELEVENLABS_API_KEY="${ELEVENLABS_API_KEY:-}"
+export GROQ_API_KEY="${GROQ_API_KEY:-}"
 
 export XDG_RUNTIME_DIR=/run/user/0
 mkdir -p "$XDG_RUNTIME_DIR" /tmp/.X11-unix /tmp/chrome-profile /tmp/hls /var/www/html
 chmod 1777 /tmp/.X11-unix
+
+# A stale Xvfb lockfile (from a crashed previous boot of the same container,
+# possible because compose's `restart: unless-stopped` reuses /tmp) makes the
+# next Xvfb start fail with "Server is already active for display 99". Wipe.
+DISPLAY_NUM_NUMERIC="${DISPLAY_NUM#:}"
+rm -f "/tmp/.X${DISPLAY_NUM_NUMERIC}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM_NUMERIC}" 2>/dev/null || true
 
 XVFB_PID=""; PULSE_PID=""; VTUBER_PID=""; CHROME_PID=""
 HTTP_PID=""; FFMPEG_PID=""; NARRATE_PID=""
@@ -167,9 +174,10 @@ if [ -n "${ANTHROPIC_API_KEY}" ]; then
     cd /app/vtuber && DISPLAY="$DISPLAY_NUM" uv run run_server.py &
     VTUBER_PID=$!
     ELAPSED=0
+    VTUBER_READY_TIMEOUT="${VTUBER_READY_TIMEOUT:-360}"
     until curl -sf http://localhost:12393/ >/dev/null 2>&1; do
         kill -0 "$VTUBER_PID" 2>/dev/null || fail "VTuber server exited early"
-        [ "$ELAPSED" -ge 180 ] && fail "VTuber server not ready after 180s"
+        [ "$ELAPSED" -ge "$VTUBER_READY_TIMEOUT" ] && fail "VTuber server not ready after ${VTUBER_READY_TIMEOUT}s"
         sleep 2; ELAPSED=$((ELAPSED+2))
     done
     log "VTuber server ready (${ELAPSED}s)"

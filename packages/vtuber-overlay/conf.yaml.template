@@ -40,7 +40,12 @@ character_config:
         model: 'claude-haiku-4-5-20251001'
 
   asr_config:
-    asr_model: 'sherpa_onnx_asr'
+    # groq_whisper_asr: no local model download, no torch on CPU. The /demo
+    # route does its own transcription via /api/demo/transcribe → Groq, so
+    # this slot is mainly here to satisfy Open-LLM-VTuber's required ASR
+    # plugin contract; switch to sherpa_onnx_asr only if you need ASR over
+    # the WebSocket channel and have the model pre-staged.
+    asr_model: 'groq_whisper_asr'
 
     azure_asr:
       api_key: ''
@@ -87,7 +92,9 @@ character_config:
       provider: 'cpu'
 
     groq_whisper_asr:
-      api_key: ''
+      api_key: '${GROQ_API_KEY}'
+      model: 'whisper-large-v3'
+      lang: 'en'
 
   tts_config:
     tts_model: '${TTS_MODEL}'
