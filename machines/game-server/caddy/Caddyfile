@@ -1,16 +1,5 @@
 {$FRONTEND_DOMAIN} {
-    # Browser-side avatar embed — proxied across to the stream-server's
-    # vtuber-overlay (Open-LLM-VTuber on :12393). Caddy reads
-    # {$AVATAR_BACKEND_URL} at config-load time and handles HTTPS +
-    # websocket upgrades natively. Same-origin from the browser, so no
-    # CORS / new subdomain / new TLS cert is needed on this server.
-    handle_path /demo-avatar/* {
-        reverse_proxy {$AVATAR_BACKEND_URL}
-    }
-
-    handle {
-        reverse_proxy frontend:3000
-    }
+    reverse_proxy frontend:3000
 }
 
 {$BROKER_DOMAIN} {

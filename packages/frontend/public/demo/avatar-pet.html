@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Avatar Pet</title>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="avatar-canvas"></canvas>
+<script src="/demo/libs/live2dcubismcore.min.js"></script>
+<script src="/demo/libs/live2d.min.js"></script>
+<script src="/demo/libs/pixi.min.js"></script>
+<script src="/demo/libs/pixi-live2d-display.min.js"></script>
+<script>
+if (typeof PIXI === 'undefined' || !PIXI.live2d || !PIXI.live2d.Live2DModel) {
+  console.error('[avatar] PIXI or Live2D not loaded');
+} else {
+
+const MODELS = [
+  { name: 'Zhongxing',  url: '/demo/live2d-models/zhongxingshekongdlc/zhongxingshekong.model3.json', scale: 0.755, yFactor: 1.35, lipParam: 'ParamMouthOpenY' },
+];
+
+const _params = new URLSearchParams(window.location.search);
+const DEFAULT_MODEL = 0;
+const INITIAL_MODEL = Math.min(parseInt(_params.get('model') || String(DEFAULT_MODEL), 10), MODELS.length - 1);
+const W = parseInt(_params.get('w') || '950', 10);
+const H = parseInt(_params.get('h') || String(window.innerHeight), 10);
+
+const app = new PIXI.Application({
+  view: document.getElementById('avatar-canvas'),
+  width: W, height: H,
+  backgroundAlpha: 0, antialias: true,
+});
+
+let currentModel = null;
+let expressionTimer = null;
+let currentModelIndex = null;
+let loadSeq = 0;
+let currentScale = 0.26;
+let currentYFactor = 1.20;
+
+async function switchModel(index) {
+  const requested = Number.isFinite(Number(index)) ? Number(index) : 0;
+  const safeIndex = Math.max(0, Math.min(requested, MODELS.length - 1));
+  if (currentModel && currentModelIndex === safeIndex) return;
+  const mySeq = ++loadSeq;
+  if (currentModel) { app.stage.removeChild(currentModel); currentModel.destroy(); currentModel = null; currentModelIndex = null; }
+  if (expressionTimer) { clearInterval(expressionTimer); expressionTimer = null; }
+  await loadModel(MODELS[safeIndex], safeIndex, mySeq);
+}
+
+function applyTransform(scale, yFactor) {
+  if (!currentModel) return;
+  currentScale = scale;
+  currentYFactor = yFactor;
+  currentModel.scale.set(scale);
+  currentModel.x = W / 2;
+  currentModel.y = H * yFactor;
+}
+
+// --- Audio state ---
+let audioCtx = null, analyser = null, analyserData = null;
+let currentSource = null, currentMouth = 0, playbackSeq = 0;
+const RMS_GAIN = 1.5;
+
+function getRms() {
+  if (!analyser || !currentSource) return 0;
+  analyser.getByteTimeDomainData(analyserData);
+  let sum = 0;
+  for (let i = 0; i < analyserData.length; i++) { const v = (analyserData[i]-128)/128; sum += v*v; }
+  return Math.min(1, Math.sqrt(sum / analyserData.length) * RMS_GAIN);
+}
+
+async function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyserData = new Uint8Array(analyser.fftSize);
+    analyser.connect(audioCtx.destination);
+  }
+  // Must await: suspended context produces silent playback with active analyser
+  if (audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch (e) { console.warn('[avatar] resume failed:', e); }
+  }
+}
+
+function stopAudio() {
+  playbackSeq++;
+  if (currentSource) { try { currentSource.stop(); } catch (e) {} currentSource = null; }
+  currentMouth = 0;
+}
+
+async function playPayload(payload) {
+  stopAudio();
+  if (!payload.audio) return;
+  await ensureAudioCtx();
+  const raw = atob(payload.audio);
+  const buf = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+  const id = payload.id || null;
+  const mySeq = ++playbackSeq;
+  try {
+    const audioBuffer = await audioCtx.decodeAudioData(buf.buffer);
+    if (mySeq !== playbackSeq) return;
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(analyser);
+    const requestedOffsetMs = Number(payload.offsetMs) || 0;
+    const offsetSeconds = Math.min(Math.max(0, requestedOffsetMs / 1000), Math.max(0, audioBuffer.duration - 0.25));
+    source.start(0, offsetSeconds);
+    currentSource = source;
+    try { window.parent.postMessage({ type: 'audio-started', id, durationMs: Math.round(audioBuffer.duration * 1000), offsetMs: Math.round(offsetSeconds * 1000) }, '*'); } catch (e) {}
+    source.onended = () => {
+      const naturalEnd = currentSource === source;
+      if (naturalEnd) currentSource = null;
+      try { window.parent.postMessage({ type: 'audio-ended', id, natural: naturalEnd }, '*'); } catch (e) {}
+    };
+  } catch (err) { console.error('[avatar] audio decode error:', err); }
+}
+
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+  if (e.data.type === 'unlock') ensureAudioCtx();
+  if (e.data.type === 'audio') playPayload(e.data);
+  if (e.data.type === 'stop') stopAudio();
+  if (e.data.type === 'switch-model') switchModel(e.data.index ?? 0);
+  if (e.data.type === 'tune') applyTransform(e.data.scale, e.data.yFactor);
+});
+
+async function loadModel(cfg, index, mySeq) {
+  const model = await PIXI.live2d.Live2DModel.from(cfg.url, { autoInteract: false, autoUpdate: true });
+  if (mySeq !== loadSeq) {
+    model.destroy();
+    return;
+  }
+  currentModel = model;
+  currentModelIndex = index;
+  app.stage.addChild(model);
+  model.anchor.set(0.5, 0.5);
+
+  applyTransform(cfg.scale, cfg.yFactor);
+
+  try { model.motion('Idle', 0, PIXI.live2d.MotionPriority.IDLE); } catch (e) {}
+
+  const numExpressions = model.internalModel?.settings?.expressions?.length ?? 8;
+  expressionTimer = setInterval(() => {
+    try { model.expression(Math.floor(Math.random() * numExpressions)); } catch (e) {}
+  }, 8000);
+
+  model.internalModel.on('beforeModelUpdate', () => {
+    const target = getRms();
+    const speed = target > currentMouth ? 0.7 : 0.4;
+    currentMouth += (target - currentMouth) * speed;
+    if (currentMouth < 0.01) currentMouth = 0;
+    model.internalModel.coreModel.setParameterValueById(cfg.lipParam, currentMouth);
+  });
+
+  // Report current values to parent for tune panel
+  try { window.parent.postMessage({ type: 'avatar-ready', scale: currentScale, yFactor: currentYFactor }, '*'); } catch (e) {}
+  console.log('[avatar] loaded:', cfg.name, 'scale:', currentScale, 'yFactor:', currentYFactor);
+}
+
+switchModel(INITIAL_MODEL).catch(err => console.error('[avatar] switchModel failed:', err));
+
+} // end PIXI guard
+</script>
+</body>
+</html>

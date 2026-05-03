@@ -106,9 +106,10 @@ services:
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       ELEVENLABS_VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      # Backend the Next.js /demo-avatar rewrite proxies to. Same docker
-      # network in dev; on prod it's the stream-server's vtuber subdomain.
-      AVATAR_BACKEND_URL: ${AVATAR_BACKEND_URL:-http://vtuber-overlay:12393}
+      # Public URL the visitor's browser loads the avatar iframe from.
+      # In dev that's the host port mapped by vtuber-overlay's compose
+      # service; in prod it's the stream-server's vtuber subdomain.
+      AVATAR_URL: ${AVATAR_URL:-http://localhost:12393}
     ports:
       - "3000:3000"
 

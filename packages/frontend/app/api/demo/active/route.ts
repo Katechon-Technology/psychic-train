@@ -2,50 +2,22 @@ import { BROKER_INTERNAL_URL, type SessionInfo } from "../../../../lib/api";
 
 const ADMIN_KEY = process.env.BROKER_ADMIN_KEY || "";
 const DEMO_KIND = "arcade";
-const PROBE_TIMEOUT_MS = 2000;
 
-// Probe the broker-spawned stream-client over the docker network. If the
-// container is gone (compose down + back up, manual `docker rm`, OOM kill,
-// etc.), the broker still has the session in `running`/`waiting` state in
-// the DB but `docker exec` against the container fails — that's the "no
-// such container: stream-client-arcade-0" error the user kept hitting.
-async function probeStreamClient(kind: string, slot: number | null): Promise<boolean> {
-  if (slot === null) return false;
-  const url = `http://stream-client-${kind}-${slot}:3000/`;
-  try {
-    await fetch(url, { method: "GET", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Statuses where a session is considered "the active one" — anything that
+// hasn't ended yet. Trusting the broker here is correct because the broker
+// is the only thing that can reach the spawned containers (which live on
+// the stream-server in production, not on the frontend's docker network).
+const ALIVE_STATUSES = new Set(["queued", "starting", "waiting", "running"]);
 
-async function deleteSession(id: string): Promise<void> {
-  await fetch(`${BROKER_INTERNAL_URL}/api/sessions/${id}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${ADMIN_KEY}` },
-  }).catch(() => {});
-}
-
-async function findLiveExisting(): Promise<SessionInfo | null> {
+async function findActiveSession(): Promise<SessionInfo | null> {
   const r = await fetch(
-    `${BROKER_INTERNAL_URL}/api/sessions?kind=${DEMO_KIND}&limit=10`,
+    `${BROKER_INTERNAL_URL}/api/sessions?kind=${DEMO_KIND}&limit=20`,
     { cache: "no-store" },
   );
   if (!r.ok) return null;
   const list = (await r.json()) as SessionInfo[];
-  const candidates = list.filter(
-    (s) => s.status === "running" || s.status === "waiting",
-  );
-  for (const s of candidates) {
-    if (await probeStreamClient(DEMO_KIND, s.slot)) {
-      return s;
-    }
-    // Orphan — its containers are gone, free its slot so a fresh session
-    // can spawn into it. Best-effort; we don't block on the DELETE response.
-    await deleteSession(s.id);
-  }
-  return null;
+  // Broker orders by created_at desc, so the first alive session wins.
+  return list.find((s) => ALIVE_STATUSES.has(s.status)) ?? null;
 }
 
 async function createNew(): Promise<SessionInfo> {
@@ -66,8 +38,7 @@ async function createNew(): Promise<SessionInfo> {
 
 export async function GET() {
   try {
-    const live = await findLiveExisting();
-    const session = live ?? (await createNew());
+    const session = (await findActiveSession()) ?? (await createNew());
     return new Response(JSON.stringify(session), {
       status: 200,
       headers: { "content-type": "application/json" },

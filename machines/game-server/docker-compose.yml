@@ -26,9 +26,6 @@ services:
     environment:
       - FRONTEND_DOMAIN=${FRONTEND_DOMAIN}
       - BROKER_DOMAIN=${BROKER_DOMAIN}
-      # Used by the /demo-avatar/* handler on FRONTEND_DOMAIN to reach
-      # the stream-server's vtuber-overlay container.
-      - AVATAR_BACKEND_URL=${AVATAR_BACKEND_URL}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -93,11 +90,9 @@ services:
     environment:
       BROKER_URL: http://broker:8080
       BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY}
-      # /demo browser-side avatar — Next.js rewrites /demo-avatar/* to
-      # this URL server-side. Must be reachable from the game-server
-      # (not from the visitor's browser); a public stream-server URL
-      # (e.g. https://vtuber.<STREAM_DOMAIN>) is the standard choice.
-      AVATAR_BACKEND_URL: ${AVATAR_BACKEND_URL:-}
+      # /demo browser-side avatar — public URL the iframe loads in the
+      # visitor's browser. Cross-origin from the frontend domain is fine.
+      AVATAR_URL: ${AVATAR_URL:-}
       # /demo voice + Kat agent
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
