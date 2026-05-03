@@ -26,6 +26,9 @@ services:
     environment:
       - FRONTEND_DOMAIN=${FRONTEND_DOMAIN}
       - BROKER_DOMAIN=${BROKER_DOMAIN}
+      # Used by the /demo-avatar/* handler on FRONTEND_DOMAIN to reach
+      # the stream-server's vtuber-overlay container.
+      - AVATAR_BACKEND_URL=${AVATAR_BACKEND_URL}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
