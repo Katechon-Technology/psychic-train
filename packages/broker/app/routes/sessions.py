@@ -351,6 +351,33 @@ async def workspace_switch(
 
 
 # ---------------------------------------------------------------------------
+# Demo viewer heartbeat — the /demo page in the frontend posts here every few
+# seconds while it's open. tasks.agent_idle_pauser scans these keys and pauses
+# every running agent on a session that hasn't been pinged recently, so we
+# stop burning Anthropic credits when nobody is watching.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/{session_id}/demo/heartbeat",
+    dependencies=[Depends(require_admin_key)],
+)
+async def demo_heartbeat(
+    session_id: str,
+    app_state: AppState = Depends(get_app_state),
+):
+    if app_state.redis is None:
+        raise HTTPException(503, "redis not initialized")
+    now_ts = datetime.now(timezone.utc).timestamp()
+    # TTL is a soft upper bound; the periodic checker uses the value, not the
+    # TTL, to decide whether the heartbeat is fresh.
+    await app_state.redis.set(
+        f"demo_heartbeat:{session_id}", str(now_ts), ex=120
+    )
+    return {"ok": True, "ts": now_ts}
+
+
+# ---------------------------------------------------------------------------
 # Session events — agent POSTs here; narrator GETs here (works across servers)
 # ---------------------------------------------------------------------------
 

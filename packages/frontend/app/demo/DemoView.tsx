@@ -235,6 +235,37 @@ export default function DemoView({
     }
   }, [session.stream_url]);
 
+  // ---- Heartbeat: tell the broker the demo viewer is still here -------
+  // Broker's agent_idle_pauser pauses every running agent for this session
+  // once these stop arriving for >20s.
+  useEffect(() => {
+    let cancelled = false;
+    async function ping() {
+      if (cancelled || document.visibilityState === "hidden") return;
+      try {
+        await fetch("/api/demo/heartbeat", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ session_id: session.id }),
+          keepalive: true,
+        });
+      } catch {
+        /* ignore — next tick will retry */
+      }
+    }
+    ping();
+    const interval = setInterval(ping, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") ping();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [session.id]);
+
   // ---- Kick livestream once preview is ready ---------------------------
   useEffect(() => {
     if (livestreamKickedOff.current) return;

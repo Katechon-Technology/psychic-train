@@ -14,7 +14,7 @@ from .routes import all_routers
 from .services.environment import teardown_session
 from .services.manifest import load_registry
 from .state import AppState
-from .tasks import session_timeout_checker
+from .tasks import agent_idle_pauser, session_timeout_checker
 
 
 # Statuses where containers may still be running and need to be reaped.
@@ -67,6 +67,7 @@ def create_app() -> FastAPI:
         # Pre-populate slot pools in Redis (one set per kind, size = manifest.max_concurrent)
         await app_state.init_slot_pools()
         asyncio.create_task(session_timeout_checker(app_state))
+        asyncio.create_task(agent_idle_pauser(app_state))
         yield
         # Teardown order matters: reap sessions BEFORE closing redis (slot
         # release writes to redis) and BEFORE closing the DB (teardown
