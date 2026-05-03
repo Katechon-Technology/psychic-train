@@ -4,8 +4,10 @@ import type { SessionInfo } from "../../lib/api";
 
 export const dynamic = "force-dynamic";
 
-const PUBLIC_AVATAR_URL =
-  process.env.NEXT_PUBLIC_AVATAR_URL || "http://localhost:12393";
+// Same-origin path proxied by next.config.ts → AVATAR_BACKEND_URL/*. The
+// browser only ever sees the frontend domain, so no CORS / DNS / new
+// subdomain is required for the avatar iframe.
+const PUBLIC_AVATAR_URL = "/demo-avatar";
 
 async function fetchActive(): Promise<SessionInfo> {
   const h = await headers();

@@ -11,19 +11,14 @@
 		on_demand
 	}
 
-	# Persistent vtuber-overlay HLS preview at vtuber.<domain>. The vtuber
-	# pushes RTMP directly to YouTube; this route is only useful for
-	# debugging the local HLS output.
+	# vtuber.<domain> — Open-LLM-VTuber browser embed (used by the
+	# frontend's /demo-avatar Next.js rewrite). With ENABLE_RECORDING=0
+	# (the default in the new model), nothing serves on :3000, so we
+	# point the existing matcher straight at :12393. Anyone debugging
+	# the legacy HLS-compositing pipeline can flip ENABLE_RECORDING=1
+	# AND temporarily change this matcher to :3000.
 	@vtuberPersistent header host vtuber.{$STREAM_DOMAIN}
 	handle @vtuberPersistent {
-		reverse_proxy vtuber-overlay:3000
-	}
-
-	# Browser-side avatar UI at avatar.<domain> — Open-LLM-VTuber on :12393.
-	# The /demo page iframes /embed.html from this host; transparent canvas
-	# only (see packages/vtuber-overlay/patches/embed.html).
-	@avatarPersistent header host avatar.{$STREAM_DOMAIN}
-	handle @avatarPersistent {
 		reverse_proxy vtuber-overlay:12393
 	}
 

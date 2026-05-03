@@ -90,3 +90,13 @@ services:
     environment:
       BROKER_URL: http://broker:8080
       BROKER_ADMIN_KEY: ${BROKER_ADMIN_KEY}
+      # /demo browser-side avatar — Next.js rewrites /demo-avatar/* to
+      # this URL server-side. Must be reachable from the game-server
+      # (not from the visitor's browser); a public stream-server URL
+      # (e.g. https://vtuber.<STREAM_DOMAIN>) is the standard choice.
+      AVATAR_BACKEND_URL: ${AVATAR_BACKEND_URL:-}
+      # /demo voice + Kat agent
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${VOICE_ID:-jqcCZkN6Knx8BJ5TBdYR}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}

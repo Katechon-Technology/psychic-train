@@ -35,9 +35,12 @@
   right: 0;
   bottom: 0;
   width: 600px;
-  height: 400px;
+  height: 720px;
   border: 0;
   background: transparent;
+  /* color-scheme:normal stops Chromium from painting a default light/dark
+     bg on the iframe before its <body> styles take effect. */
+  color-scheme: normal;
   pointer-events: none;
   z-index: 5;
 }

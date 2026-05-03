@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>Avatar Embed</title>
+    <!-- Lock color-scheme so the user-agent doesn't paint a default white
+         or dark background before our CSS lands. -->
+    <meta name="color-scheme" content="normal">
     <link rel="stylesheet" crossorigin href="./assets/main-QEkl09-0.css">
     <style>
       /* Nuclear transparency: override ALL backgrounds */
@@ -16,6 +19,7 @@
         --colors-gray-900: transparent !important;
         --colors-gray-800: transparent !important;
         --colors-gray-700: transparent !important;
+        color-scheme: normal !important;
       }
 
       html, body, #root {
@@ -26,6 +30,7 @@
         padding: 0 !important;
         width: 100vw;
         height: 100vh;
+        color-scheme: normal !important;
       }
 
       /* Override every div's background */
@@ -47,10 +52,9 @@
         display: none !important;
       }
 
-      /* Avatar framing. The Live2D canvas is sized, scaled, and pushed
-         below the iframe bottom so only the top of the model (the head)
-         pokes up inside wrapper.html's bottom-right container. Values
-         tuned live in DevTools against a 600x400 outer iframe. */
+      /* Avatar framing. The Live2D canvas is sized, scaled, and anchored
+         near the iframe bottom so head + torso are visible. Re-tuned for
+         a 600x720 outer iframe (was 600x400 with bottom: -420px). */
       canvas {
         background: transparent !important;
         background-color: transparent !important;
@@ -58,9 +62,10 @@
         height: 756px !important;
         position: absolute !important;
         left: 50px !important;
-        bottom: -420px !important;
+        bottom: -160px !important;
         overflow: hidden !important;
-        transform: scale(2.4) !important;
+        transform: scale(2.0) !important;
+        transform-origin: bottom center !important;
       }
     </style>
   </head>
