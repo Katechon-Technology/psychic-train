@@ -12,10 +12,12 @@ type Workspace = {
   kicker: string;
   label: string;
   thumb: { kind: "video"; src: string } | { kind: "img"; src: string } | { kind: "preview"; title: string };
-  // null = "not implemented yet" — alert and do nothing else.
+  // No `real` block = "not implemented yet" — alert and do nothing else.
+  // `agentKind: null` = real workspace with no Claude agent (e.g. SPECTRE,
+  // which is a self-driving Flask dashboard); switching pauses every agent.
   real?: {
     workspaceIndex: number;
-    agentKind: RealAgentKind;
+    agentKind: RealAgentKind | null;
     task?: string;
   };
 };
@@ -27,9 +29,6 @@ type Group = {
   tiles: Workspace[];
 };
 
-const SPECTRE_TASK =
-  "Browse OSINT / open-source intelligence dashboards. Look for interesting public data on companies, public figures, or current events. Narrate what you find.";
-
 const NEWS_TASK =
   "Doomscroll the latest AI news. Open one or two of: Hacker News, TechCrunch AI section, The Verge AI tag, ArsTechnica AI tag. Read headlines and skim articles.";
 
@@ -40,11 +39,15 @@ const GROUPS: Group[] = [
     rowClass: "gifRowPrimary",
     tiles: [
       {
+        // SPECTRE is workspace 3 in the arcade plugin: a Flask dashboard
+        // running inside the stream-client container with a Chromium kiosk
+        // pointed at it. No Claude agent — it's self-driving — so we pass
+        // agentKind=null which pauses every running agent.
         id: "spectre",
         kicker: "01 / OSINT",
         label: "OSINT / SPECTRE",
         thumb: { kind: "video", src: "/demo/videos/spectre.mp4" },
-        real: { workspaceIndex: 2, agentKind: "playwright", task: SPECTRE_TASK },
+        real: { workspaceIndex: 3, agentKind: null },
       },
       {
         id: "minecraft",
@@ -616,7 +619,7 @@ export default function DemoView({
               <span className={styles.statusDot} />
               <span>Katechon live</span>
             </div>
-            <div className={styles.mainTitle}>Katechon Technology</div>
+            <div className={styles.mainTitle}>Katechon Demo</div>
             <div className={styles.mainSub}>24hr interactive livestream</div>
             <div className={styles.layoutControlRow}>
               <button

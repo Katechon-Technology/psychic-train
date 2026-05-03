@@ -41,10 +41,10 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      grid-template-columns: repeat(4, minmax(200px, 1fr));
       gap: clamp(16px, 2vw, 36px);
       width: 100%;
-      max-width: 1100px;
+      max-width: 1280px;
     }
     .card {
       background: rgba(255, 255, 255, 0.04);
@@ -94,6 +94,7 @@
     .pulse.cyan { background: #8de7ff; }
     .pulse.violet { background: #c9a4ff; }
     .pulse.pink { background: #ff9ad6; }
+    .pulse.green { background: #6dffb6; }
     footer {
       margin-top: 4vh;
       color: #5b6075;
@@ -125,6 +126,12 @@
         <span class="badge">Workspace 2</span>
         <h2>Playwright</h2>
         <p>Doomscrolls news feeds. Send a free-text task to steer it.</p>
+      </div>
+      <div class="card">
+        <span class="pulse green"></span>
+        <span class="badge">Workspace 3</span>
+        <h2>SPECTRE</h2>
+        <p>Self-driving OSINT dashboard. Quakes, GPS jamming, military flights, news, more — no agent.</p>
       </div>
     </div>
     <footer>psychic-train · arcade</footer>

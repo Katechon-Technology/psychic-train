@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-liberation libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
         libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
         libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+        python3 python3-venv \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -83,6 +84,14 @@ COPY arcade/stream-client/openbox/rc.xml /root/.config/openbox/rc.xml
 # Static assets the Hub Chromium opens.
 COPY arcade/stream-client/hub.html /app/hub.html
 
+# SPECTRE — Flask-based Global Intelligence dashboard. Vendored under
+# arcade/stream-client/spectre/ via seed-spectre.sh; see that directory's
+# README. We isolate its deps in a venv to avoid PEP-668 system-pip lock.
+COPY arcade/stream-client/spectre /app/spectre
+RUN python3 -m venv /app/spectre/.venv \
+    && /app/spectre/.venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /app/spectre/.venv/bin/pip install --no-cache-dir -r /app/spectre/requirements.txt
+
 COPY arcade/stream-client/launch.sh /app/launch.sh
 RUN chmod +x /app/launch.sh
 
@@ -90,8 +99,10 @@ ENV CTRL_HOST=0.0.0.0 \
     CTRL_PORT=8780 \
     PW_HOST=0.0.0.0 \
     PW_PORT=8731 \
+    SPECTRE_HOST=0.0.0.0 \
+    SPECTRE_PORT=5050 \
     PLAYWRIGHT_BROWSER_KIOSK=1 \
     PLAYWRIGHT_BROWSER_EXTENSIONS=/extensions/consent-o-matic,/extensions/ublock-origin-lite \
     PLAYWRIGHT_BROWSER_PROFILE=/tmp/pw-profile
 
-EXPOSE 8780 8731
+EXPOSE 8780 8731 5050

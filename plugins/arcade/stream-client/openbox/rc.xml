@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc">
   <desktops>
-    <number>3</number>
+    <number>4</number>
     <firstdesk>1</firstdesk>
     <names>
       <name>Hub</name>
       <name>Minecraft</name>
       <name>Playwright</name>
+      <name>SPECTRE</name>
     </names>
     <popupTime>0</popupTime>
   </desktops>

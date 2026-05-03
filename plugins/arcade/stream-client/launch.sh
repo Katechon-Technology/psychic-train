@@ -1,13 +1,15 @@
 #!/bin/bash
 # Arcade stream-client launcher.
 #
-# Brings up three X11 workspaces under one Xvfb display:
+# Brings up four X11 workspaces under one Xvfb display:
 #   wks 0 — Hub Chromium loading file:///app/hub.html
 #   wks 1 — Java Minecraft client connected to MC_HOST:MC_PORT as Spectator
 #   wks 2 — Playwright fastify (port PW_PORT) — its first session call lands a
 #           Chromium window here
+#   wks 3 — SPECTRE Flask dashboard (port SPECTRE_PORT) + a kiosk Chromium
+#           pointed at http://127.0.0.1:${SPECTRE_PORT}/?kiosk=1
 #
-# All three windows are open from t=0 so workspace switches are instant. The
+# All four windows are open from t=0 so workspace switches are instant. The
 # broker tells us to switch by `docker exec ... wmctrl -s N`. ffmpeg in the
 # base image captures the whole Xvfb root window, so the user sees only the
 # currently active desktop.
@@ -30,10 +32,12 @@ log() { echo "[arcade-launch] $*"; }
 : "${CTRL_PORT:=8780}"
 : "${PW_HOST:=0.0.0.0}"
 : "${PW_PORT:=8731}"
+: "${SPECTRE_HOST:=0.0.0.0}"
+: "${SPECTRE_PORT:=5050}"
 
 export DISPLAY
 
-mkdir -p /tmp/hub-profile /tmp/pw-profile /workspace
+mkdir -p /tmp/hub-profile /tmp/pw-profile /tmp/spectre-profile /workspace
 
 # ---- arcade control server (foreground-ish) -------------------------------
 log "starting control server on ${CTRL_HOST}:${CTRL_PORT}"
@@ -50,6 +54,17 @@ log "starting playwright fastify on ${PW_HOST}:${PW_PORT}"
     HOST="${PW_HOST}" PORT="${PW_PORT}" exec npx tsx src/server.ts
 ) &
 PW_PID=$!
+
+# ---- SPECTRE Flask (port SPECTRE_PORT) ------------------------------------
+# Self-driving OSINT dashboard. Has no Claude agent — ffmpeg captures the
+# Chromium kiosk pointed at it (workspace 3).
+log "starting SPECTRE Flask on ${SPECTRE_HOST}:${SPECTRE_PORT}"
+(
+    cd /app/spectre
+    SPECTRE_HOST="${SPECTRE_HOST}" SPECTRE_PORT="${SPECTRE_PORT}" \
+        exec /app/spectre/.venv/bin/python3 app.py
+) >/tmp/spectre.log 2>&1 &
+SPECTRE_PID=$!
 
 # ---- Hub Chromium on workspace 0 ------------------------------------------
 log "launching Hub Chromium → workspace 0"
@@ -164,6 +179,41 @@ log "scheduling initial Playwright session"
     done
 ) &
 
+# ---- SPECTRE Chromium on workspace 3 --------------------------------------
+# Wait for SPECTRE Flask to answer /api/health, then launch a kiosk Chromium
+# pointed at it. Same binary-detection fallback as the Hub block.
+log "launching SPECTRE Chromium → workspace 3 (waiting for Flask /api/health)"
+(
+    for _ in $(seq 1 60); do
+        if curl -fsS "http://127.0.0.1:${SPECTRE_PORT}/api/health" >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    if command -v chromium >/dev/null; then C=chromium
+    elif command -v chromium-browser >/dev/null; then C=chromium-browser
+    elif command -v google-chrome >/dev/null; then C=google-chrome
+    else
+        C=$(find /root/.cache/ms-playwright -name chrome -type f 2>/dev/null | head -1)
+    fi
+    [ -n "$C" ] || { echo "[arcade-launch] no chromium binary found for SPECTRE"; exit 1; }
+    exec "$C" \
+        --user-data-dir=/tmp/spectre-profile \
+        --no-first-run \
+        --no-default-browser-check \
+        --disable-gpu \
+        --no-sandbox \
+        --disable-dev-shm-usage \
+        --window-name=ArcadeSpectre \
+        --class=ArcadeSpectre \
+        --start-maximized \
+        --window-size="${DISPLAY_WIDTH},${DISPLAY_HEIGHT}" \
+        --window-position=0,0 \
+        --kiosk \
+        "http://127.0.0.1:${SPECTRE_PORT}/?kiosk=1"
+) &
+SPECTRE_CHROME_PID=$!
+
 # ---- window-to-workspace assignment watcher -------------------------------
 # wmctrl -i -r WID -t N requires the window to exist. Java in particular can
 # take 10+s to map its window, and Chromium spawns child windows we want to
@@ -198,10 +248,14 @@ log "starting window-assignment watcher"
         # workspace 1 — Java Minecraft client (window class contains
         # "minecraft" or "Minecraft")
         assign_by_class "[Mm]inecraft" 1 || true
+        # workspace 3 — SPECTRE Chromium (window class ArcadeSpectre, set via
+        # flag). Pinned BEFORE the catch-all so the catch-all doesn't grab it.
+        assign_by_class "ArcadeSpectre" 3 || true
         # workspace 2 — Playwright Chromium. Playwright's default class is
-        # "Chromium" / "chromium" — anything that isn't ArcadeHub goes to 2.
+        # "Chromium" / "chromium" — anything that isn't ArcadeHub or
+        # ArcadeSpectre goes to 2.
         wmctrl -lx 2>/dev/null | awk '
-            $3 !~ /ArcadeHub/ && $3 !~ /[Mm]inecraft/ && $3 ~ /[Cc]hrom/ { print $1 }
+            $3 !~ /ArcadeHub/ && $3 !~ /ArcadeSpectre/ && $3 !~ /[Mm]inecraft/ && $3 ~ /[Cc]hrom/ { print $1 }
         ' | while read -r wid; do
             wmctrl -i -r "$wid" -t 2 2>/dev/null || true
         done
@@ -216,14 +270,15 @@ WATCHER_PID=$!
 ) &
 
 log "all background services launched; entering wait loop"
-log "  control=${CTRL_PID}  pw-fastify=${PW_PID}  hub=${HUB_PID}  mc=${MC_PID}  watcher=${WATCHER_PID}"
+log "  control=${CTRL_PID}  pw-fastify=${PW_PID}  spectre=${SPECTRE_PID}  hub=${HUB_PID}  mc=${MC_PID}  spectre-chrome=${SPECTRE_CHROME_PID}  watcher=${WATCHER_PID}"
 
 # We exit (and trigger the base-image teardown) ONLY if the control server or
 # the playwright fastify dies — those are required. Hub Chromium / Minecraft /
-# watcher dying is recoverable; we just leave the workspace blank.
+# SPECTRE / watcher dying is recoverable; we just leave the workspace blank.
 on_term() {
     log "received SIGTERM, killing children"
-    kill ${CTRL_PID} ${PW_PID} ${HUB_PID} ${MC_PID} ${WATCHER_PID} 2>/dev/null || true
+    kill ${CTRL_PID} ${PW_PID} ${SPECTRE_PID} ${HUB_PID} ${MC_PID} \
+         ${SPECTRE_CHROME_PID} ${WATCHER_PID} 2>/dev/null || true
     exit 0
 }
 trap on_term SIGTERM SIGINT
@@ -241,6 +296,11 @@ while true; do
         log "Minecraft client exited; tail /tmp/mc-client.log:"
         tail -30 /tmp/mc-client.log 2>/dev/null | sed 's/^/[mc] /'
         MC_DIED=1
+    fi
+    if [ -z "${SPECTRE_DIED:-}" ] && ! kill -0 "${SPECTRE_PID}" 2>/dev/null; then
+        log "SPECTRE Flask exited; tail /tmp/spectre.log:"
+        tail -30 /tmp/spectre.log 2>/dev/null | sed 's/^/[spectre] /'
+        SPECTRE_DIED=1
     fi
     sleep 5
 done

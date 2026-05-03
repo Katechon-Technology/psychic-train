@@ -55,6 +55,10 @@ plugins/minecraft/server/logs/
 plugins/minecraft/server/.fabric/
 plugins/minecraft/server/usercache.json
 plugins/minecraft/server/node_modules/
+# SPECTRE vendored source — populated by plugins/arcade/stream-client/seed-spectre.sh
+# from the sibling katechon-app repo. Keep README so the COPY path exists.
+plugins/arcade/stream-client/spectre/*
+!plugins/arcade/stream-client/spectre/README.md
 
 # Local dev data volumes
 dev/postgres_data/

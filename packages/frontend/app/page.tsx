@@ -21,7 +21,7 @@ export default async function Home() {
   return (
     <main className="mx-auto max-w-5xl p-8 space-y-12">
       <header>
-        <h1 className="text-3xl font-bold">psychic-train</h1>
+        <h1 className="text-3xl font-bold">Katechon</h1>
         <p className="text-neutral-400 mt-2">
           Pick a kind. An AI plays. You watch.
         </p>
