@@ -11,6 +11,7 @@ class AppState:
         self.redis: redis.Redis | None = None
         self.kinds: dict[str, Any] = {}           # name -> Manifest (populated in lifespan)
         self.session_tasks: Dict[str, asyncio.Task] = {}  # session_id -> monitor task
+        self.narrator_tasks: Dict[str, asyncio.Task] = {}  # session_id -> narrator loop
 
     async def init_redis(self):
         self.redis = redis.Redis(

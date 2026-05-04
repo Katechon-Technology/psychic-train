@@ -571,6 +571,12 @@ async def teardown_session(
 
     m = app_state.kinds.get(kind)
 
+    # Cancel the narrator task, if any. Done first so it doesn't keep writing
+    # narration events past teardown.
+    narrator_task = app_state.narrator_tasks.pop(session_id, None)
+    if narrator_task and not narrator_task.done():
+        narrator_task.cancel()
+
     await _docker_stop(_agent_container_name(session_id))
     await reap_session_agents(session_id)
     if slot is not None:

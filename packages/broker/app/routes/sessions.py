@@ -378,6 +378,36 @@ async def demo_heartbeat(
 
 
 # ---------------------------------------------------------------------------
+# TTS mode — frontend modal records the viewer's choice (elevenlabs vs
+# browser) into session.state so narrate.py knows whether to synthesize audio
+# server-side or just emit narration text as a broker event for the browser
+# to TTS locally.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/{session_id}/tts-mode",
+    dependencies=[Depends(require_admin_key)],
+)
+async def set_tts_mode(
+    session_id: str,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+):
+    mode = str(payload.get("mode", "")).strip()
+    if mode not in ("elevenlabs", "browser"):
+        raise HTTPException(400, "mode must be 'elevenlabs' or 'browser'")
+    sess = await db.get(Session, session_id)
+    if not sess:
+        raise HTTPException(404, f"Unknown session: {session_id}")
+    state = dict(sess.state or {})
+    state["tts_mode"] = mode
+    sess.state = state
+    await db.commit()
+    return {"ok": True, "mode": mode}
+
+
+# ---------------------------------------------------------------------------
 # Session events — agent POSTs here; narrator GETs here (works across servers)
 # ---------------------------------------------------------------------------
 

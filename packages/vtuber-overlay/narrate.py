@@ -27,6 +27,7 @@ AVATAR_URL = os.environ.get("AVATAR_URL", "http://localhost:12393")
 SPEAK_URL = f"{AVATAR_URL}/api/speak"
 
 BROKER_URL = os.environ.get("BROKER_URL", "http://broker:8080")
+BROKER_ADMIN_KEY = os.environ.get("BROKER_ADMIN_KEY", "")
 CURRENT_SOURCE_URL = f"{BROKER_URL.rstrip('/')}/api/stream/current-source"
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -179,6 +180,43 @@ def get_current_workspace(session_id: str) -> int | None:
     return (data.get("state") or {}).get("current_workspace")
 
 
+def get_tts_mode(session_id: str) -> str:
+    """Returns 'elevenlabs' (default) or 'browser'. The /demo modal records
+    the viewer's pick into session.state.tts_mode; browser-mode skips
+    /api/speak and emits the narration as a broker event for the frontend."""
+    try:
+        with urllib.request.urlopen(
+            f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}", timeout=10
+        ) as r:
+            data = json.loads(r.read())
+    except Exception:
+        return "elevenlabs"
+    mode = (data.get("state") or {}).get("tts_mode")
+    return "browser" if mode == "browser" else "elevenlabs"
+
+
+def post_narration_event(session_id: str, text: str) -> None:
+    """POST a {kind: narration, text} event to the broker so /demo can poll
+    it and TTS locally. Requires BROKER_ADMIN_KEY in env."""
+    if not BROKER_ADMIN_KEY:
+        print("  [warn] BROKER_ADMIN_KEY unset; cannot post narration event", file=sys.stderr)
+        return
+    payload = json.dumps({"kind": "narration", "text": text}).encode()
+    req = urllib.request.Request(
+        f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}/events",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {BROKER_ADMIN_KEY}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
+    except Exception as e:
+        print(f"  [warn] post_narration_event failed: {e}", file=sys.stderr)
+
+
 def fetch_events(session_id: str, after_id: int, limit: int = 50) -> list[dict]:
     url = f"{BROKER_URL.rstrip('/')}/api/sessions/{session_id}/events?after={after_id}&limit={limit}"
     try:
@@ -204,7 +242,15 @@ def fast_forward_event_id(session_id: str) -> int:
 # ---------------------------------------------------------------------------
 
 
-def speak(text: str) -> None:
+def speak(text: str, session_id: str | None = None) -> None:
+    # When session.state.tts_mode == 'browser', skip the local /api/speak
+    # (which would synthesize ElevenLabs/Edge audio + broadcast over WS to
+    # the production VTuber avatar) and instead emit the narration as a
+    # broker event so the /demo viewer can poll it and TTS locally.
+    if session_id and get_tts_mode(session_id) == "browser":
+        post_narration_event(session_id, text)
+        print(f'  [speak/browser] "{text}" -> broker event')
+        return
     try:
         payload = json.dumps({"text": text}).encode()
         req = urllib.request.Request(SPEAK_URL, data=payload,
@@ -433,7 +479,7 @@ def run() -> None:
                 try:
                     intro = session_intro(state, new_active, new_workspace)
                     if intro:
-                        speak(intro)
+                        speak(intro, session_id=new_active)
                         state.add_narration(intro)
                 except Exception as e:
                     print(f"  [warn] intro failed: {e}", file=sys.stderr)
@@ -460,7 +506,12 @@ def run() -> None:
             rows = fetch_events(active_session_id, after_id=last_event_id)
             if rows:
                 last_event_id = rows[-1]["id"]
-                buf.extend(r["event"] for r in rows)
+                # Narration events are written by us (speak() in browser-mode);
+                # filter them out so they don't feed back into commentary_for.
+                buf.extend(
+                    r["event"] for r in rows
+                    if str((r.get("event") or {}).get("kind", "")).lower() != "narration"
+                )
             time.sleep(POLL_INTERVAL)
             slept += POLL_INTERVAL
 
@@ -470,7 +521,7 @@ def run() -> None:
             try:
                 text = commentary_for(buf, state)
                 if text:
-                    speak(text)
+                    speak(text, session_id=active_session_id)
                     state.add_narration(text)
             except Exception as e:
                 print(f"  [warn] commentary failed: {e}", file=sys.stderr)
@@ -482,13 +533,13 @@ def run() -> None:
                 print("  [tangent]")
                 t = tangent(state)
                 if t:
-                    speak(t)
+                    speak(t, session_id=active_session_id)
                     state.add_narration(t)
             elif roll < 0.50:
                 print("  [idle]")
                 t = idle_thought(state)
                 if t:
-                    speak(t)
+                    speak(t, session_id=active_session_id)
                     state.add_narration(t)
             else:
                 print("  [quiet]")

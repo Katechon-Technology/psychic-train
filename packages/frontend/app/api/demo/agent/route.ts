@@ -175,7 +175,7 @@ async function tts(text: string, voiceId: string): Promise<string> {
 }
 
 export async function POST(req: Request) {
-  let body: { transcript?: string } & Overrides;
+  let body: { transcript?: string; tts?: string } & Overrides;
   try {
     body = await req.json();
   } catch {
@@ -195,6 +195,7 @@ export async function POST(req: Request) {
   const character = (body.character || DEFAULT_CHARACTER).slice(0, 64);
   const voice = (body.voice || DEFAULT_VOICE_ID).slice(0, 64);
   const persona = (body.persona || DEFAULT_PERSONA).slice(0, 2000);
+  const skipServerTTS = body.tts === "browser";
 
   let decision: Decision;
   try {
@@ -203,10 +204,12 @@ export async function POST(req: Request) {
     decision = fallback(transcript, character);
   }
   let audio = "";
-  try {
-    audio = await tts(decision.speech, voice);
-  } catch {
-    /* keep audio empty; client still shows toast */
+  if (!skipServerTTS) {
+    try {
+      audio = await tts(decision.speech, voice);
+    } catch {
+      /* keep audio empty; client still shows toast */
+    }
   }
   return new Response(
     JSON.stringify({

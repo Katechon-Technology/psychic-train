@@ -67,6 +67,11 @@ let audioCtx = null, analyser = null, analyserData = null;
 let currentSource = null, currentMouth = 0, playbackSeq = 0;
 const RMS_GAIN = 1.5;
 
+// When non-null, overrides the analyser-driven mouth target. Used by the
+// /demo browser-TTS path: speechSynthesis output isn't capturable into Web
+// Audio, so the parent drives ParamMouthOpenY directly via postMessage.
+let manualMouthTarget = null;
+
 function getRms() {
   if (!analyser || !currentSource) return 0;
   analyser.getByteTimeDomainData(analyserData);
@@ -130,6 +135,10 @@ window.addEventListener('message', (e) => {
   if (e.data.type === 'stop') stopAudio();
   if (e.data.type === 'switch-model') switchModel(e.data.index ?? 0);
   if (e.data.type === 'tune') applyTransform(e.data.scale, e.data.yFactor);
+  if (e.data.type === 'mouth') {
+    const v = e.data.value;
+    manualMouthTarget = (typeof v === 'number') ? Math.max(0, Math.min(1, v)) : null;
+  }
 });
 
 async function loadModel(cfg, index, mySeq) {
@@ -153,7 +162,7 @@ async function loadModel(cfg, index, mySeq) {
   }, 8000);
 
   model.internalModel.on('beforeModelUpdate', () => {
-    const target = getRms();
+    const target = manualMouthTarget !== null ? manualMouthTarget : getRms();
     const speed = target > currentMouth ? 0.7 : 0.4;
     currentMouth += (target - currentMouth) * speed;
     if (currentMouth < 0.01) currentMouth = 0;

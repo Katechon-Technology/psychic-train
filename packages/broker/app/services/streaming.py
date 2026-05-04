@@ -142,6 +142,7 @@ async def spawn_vtuber_overlay(
     env = {
         "SESSION_ID": session_id,
         "BROKER_URL": config.BROKER_URL,
+        "BROKER_ADMIN_KEY": config.BROKER_ADMIN_KEY,
         "SOURCE_STREAM_URL": source_url,
         "CHARACTER_NAME": narration.character_name,
         "LIVE2D_MODEL": narration.live2d_model,

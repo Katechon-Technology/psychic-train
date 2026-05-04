@@ -129,6 +129,10 @@ const AVATAR_DEFAULTS: AvatarPlacement = {
   modelY: 1.35,
 };
 const AVATAR_STORAGE_KEY = "katechon.browserAvatarPlacement.v1";
+const TTS_MODE_STORAGE_KEY = "katechon.ttsMode.v1";
+const VOICE_URI_STORAGE_KEY = "katechon.browserVoiceURI.v1";
+
+type TtsMode = "elevenlabs" | "browser";
 
 const ALL_TILES: Workspace[] = GROUPS.flatMap((g) => g.tiles);
 const TILE_BY_ID = new Map(ALL_TILES.map((t) => [t.id, t]));
@@ -149,6 +153,18 @@ export default function DemoView({
   const [listening, setListening] = useState(false);
   const [avatarPlacement, setAvatarPlacement] = useState<AvatarPlacement>(AVATAR_DEFAULTS);
   const [avatarToolsOpen, setAvatarToolsOpen] = useState(false);
+  const [ttsMode, setTtsMode] = useState<TtsMode | null>(null);
+  const ttsModeRef = useRef<TtsMode | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | null>(null);
+  const selectedVoiceURIRef = useRef<string | null>(null);
+  const lastNarrationEventIdRef = useRef<number>(0);
+  const [narrationStats, setNarrationStats] = useState<{
+    heard: number;
+    lastPollAt: number | null;
+    lastPollOk: boolean;
+    lastNarrationAt: number | null;
+  }>({ heard: 0, lastPollAt: null, lastPollOk: false, lastNarrationAt: null });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const avatarFrameRef = useRef<HTMLIFrameElement>(null);
@@ -179,9 +195,97 @@ export default function DemoView({
           modelY: numOrDefault(savedPlacement.modelY, AVATAR_DEFAULTS.modelY),
         });
       }
+      const savedMode = localStorage.getItem(TTS_MODE_STORAGE_KEY);
+      if (savedMode === "elevenlabs" || savedMode === "browser") {
+        setTtsMode(savedMode);
+        ttsModeRef.current = savedMode;
+      }
+      const savedVoiceURI = localStorage.getItem(VOICE_URI_STORAGE_KEY);
+      if (savedVoiceURI) {
+        setSelectedVoiceURI(savedVoiceURI);
+        selectedVoiceURIRef.current = savedVoiceURI;
+      }
     } catch {
       // ignore localStorage parse errors
     }
+  }, []);
+
+  // ---- Push the chosen tts_mode to the broker (so narrate.py reads it). The
+  // modal calls applyTtsMode() on first pick; mounting also re-syncs in case
+  // the mode is in localStorage but the session was just created.
+  const applyTtsMode = useCallback(
+    (mode: TtsMode) => {
+      setTtsMode(mode);
+      ttsModeRef.current = mode;
+      try {
+        localStorage.setItem(TTS_MODE_STORAGE_KEY, mode);
+      } catch {
+        // ignore
+      }
+      fetch("/api/demo/tts-mode", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session_id: session.id, mode }),
+      }).catch(() => {});
+      if (mode === "browser" && typeof window !== "undefined" && "speechSynthesis" in window) {
+        // Prime speechSynthesis under the user gesture from the modal/toggle
+        // click so the first real utterance isn't blocked.
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance(" ")); } catch {}
+      }
+    },
+    [session.id],
+  );
+
+  // ---- Re-sync mode to broker whenever the session id changes (e.g.
+  // localStorage already had a pick from a prior session).
+  useEffect(() => {
+    if (!ttsMode) return;
+    fetch("/api/demo/tts-mode", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ session_id: session.id, mode: ttsMode }),
+    }).catch(() => {});
+  }, [session.id, ttsMode]);
+
+  // ---- Start / stop the broker-side narrator task. Only meaningful in
+  // browser mode for /demo (the polling effect below is what consumes the
+  // narrations); elevenlabs mode would need a separate audio-synthesis sink
+  // before it's worth burning Anthropic tokens on narration.
+  useEffect(() => {
+    if (ttsMode !== "browser") return;
+    fetch("/api/demo/narration/start", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ session_id: session.id }),
+    })
+      .then((r) => {
+        if (!r.ok) console.warn("narration/start failed:", r.status);
+      })
+      .catch((err) => console.warn("narration/start error:", err));
+    return () => {
+      // Best-effort stop on unmount / session change. keepalive ensures the
+      // request ships during page unload.
+      fetch("/api/demo/narration/stop", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session_id: session.id }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+  }, [session.id, ttsMode]);
+
+  // ---- Load speechSynthesis voices ------------------------------------
+  // Chrome populates voices asynchronously and fires `voiceschanged` once
+  // they're ready. Other browsers return them synchronously.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const refresh = () => {
+      const list = window.speechSynthesis.getVoices();
+      if (list.length) setVoices(list);
+    };
+    refresh();
+    window.speechSynthesis.addEventListener("voiceschanged", refresh);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", refresh);
   }, []);
 
   // ---- Poll session for stream_url + status ----------------------------
@@ -237,6 +341,73 @@ export default function DemoView({
       });
     }
   }, [session.stream_url]);
+
+  // ---- Narration polling: when ttsMode === "browser", narrate.py emits
+  // narration text into broker events (kind="narration") instead of
+  // synthesizing audio. Pull new ones every few seconds and feed each
+  // through speechSynthesis. The browser's own queue serializes them.
+  useEffect(() => {
+    if (ttsMode !== "browser") return;
+    let cancelled = false;
+    // Skip whatever's already in the log when we switch into browser mode —
+    // we only want to speak narrations going forward.
+    let initialized = false;
+    async function tick() {
+      if (cancelled) return;
+      const pollStartedAt = Date.now();
+      try {
+        const after = lastNarrationEventIdRef.current;
+        const r = await fetch(
+          `/api/demo/narrations?session_id=${encodeURIComponent(session.id)}&after=${after}&limit=50`,
+          { cache: "no-store" },
+        );
+        if (r.ok) {
+          const data = (await r.json()) as {
+            lastId: number;
+            narrations: { id: number; text: string }[];
+          };
+          if (typeof data.lastId === "number" && data.lastId > lastNarrationEventIdRef.current) {
+            lastNarrationEventIdRef.current = data.lastId;
+          }
+          let heardThisTick = 0;
+          if (initialized) {
+            for (const n of data.narrations) {
+              speakInBrowser({ text: n.text }).catch((err) => {
+                console.warn("narration speak failed:", err);
+              });
+              heardThisTick += 1;
+            }
+          }
+          initialized = true;
+          setNarrationStats((prev) => ({
+            heard: prev.heard + heardThisTick,
+            lastPollAt: pollStartedAt,
+            lastPollOk: true,
+            lastNarrationAt: heardThisTick > 0 ? pollStartedAt : prev.lastNarrationAt,
+          }));
+        } else {
+          setNarrationStats((prev) => ({
+            ...prev,
+            lastPollAt: pollStartedAt,
+            lastPollOk: false,
+          }));
+        }
+      } catch {
+        setNarrationStats((prev) => ({
+          ...prev,
+          lastPollAt: pollStartedAt,
+          lastPollOk: false,
+        }));
+      }
+    }
+    tick();
+    const interval = setInterval(tick, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id, ttsMode]);
 
   // ---- Heartbeat: tell the broker the demo viewer is still here -------
   // Broker's agent_idle_pauser pauses every running agent for this session
@@ -406,6 +577,42 @@ export default function DemoView({
     });
   }
 
+  // speechSynthesis output isn't capturable into Web Audio, so the avatar's
+  // analyser-driven lip-sync sees silence. We bypass it by driving
+  // ParamMouthOpenY directly via the iframe's `mouth` postMessage on
+  // utterance lifecycle events: open on start, flutter on each word boundary,
+  // release on end.
+  async function speakInBrowser(payload: { text?: string }) {
+    if (!payload.text) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    await waitForAvatarReady();
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeout);
+        postToAvatar({ type: "mouth" });
+        resolve();
+      };
+      const timeout = setTimeout(finish, 30_000);
+      const u = new SpeechSynthesisUtterance(payload.text!);
+      const wantedURI = selectedVoiceURIRef.current;
+      if (wantedURI) {
+        const v = window.speechSynthesis.getVoices().find((vv) => vv.voiceURI === wantedURI);
+        if (v) u.voice = v;
+      }
+      u.onstart = () => postToAvatar({ type: "mouth", value: 0.6 });
+      u.onboundary = () => {
+        postToAvatar({ type: "mouth", value: 0.9 });
+        window.setTimeout(() => postToAvatar({ type: "mouth", value: 0.4 }), 80);
+      };
+      u.onend = finish;
+      u.onerror = finish;
+      window.speechSynthesis.speak(u);
+    });
+  }
+
   // ---- Workspace switching --------------------------------------------
   const switchWs = useCallback(
     async (ws: Workspace) => {
@@ -466,7 +673,11 @@ export default function DemoView({
     const r = await fetch("/api/demo/agent", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ transcript: text, session_id: session.id }),
+      body: JSON.stringify({
+        transcript: text,
+        session_id: session.id,
+        ...(ttsMode === "browser" ? { tts: "browser" } : {}),
+      }),
     });
     if (!r.ok) {
       showToast(`agent error (${r.status})`, "#ff4444");
@@ -480,7 +691,11 @@ export default function DemoView({
     } else if (cmd.action === "home") {
       goHome();
     }
-    if (cmd.audio) {
+    if (ttsMode === "browser" && cmd.speech) {
+      speakInBrowser({ text: cmd.speech }).catch((err) => {
+        console.warn("browser TTS failed:", err);
+      });
+    } else if (cmd.audio) {
       playThroughAvatar({ id: cmd.id, text: cmd.speech, audio: cmd.audio }).catch((err) => {
         console.warn("avatar audio failed:", err);
       });
@@ -576,6 +791,36 @@ export default function DemoView({
 
   return (
     <div className={styles.root}>
+      {ttsMode === null && (
+        <div className={styles.ttsModal} role="dialog" aria-modal="true">
+          <div className={styles.ttsModalCard}>
+            <div className={styles.ttsModalKicker}>Pick a voice</div>
+            <h2 className={styles.ttsModalTitle}>How should the avatar speak?</h2>
+            <p className={styles.ttsModalBody}>
+              The narrator can either synthesize audio server-side via
+              ElevenLabs (premium voice, lip-sync from real audio) or speak
+              locally via your browser&apos;s built-in TTS (free, lip-sync
+              approximated). You can switch later from the Avatar panel.
+            </p>
+            <div className={styles.ttsModalActions}>
+              <button
+                type="button"
+                className={styles.ttsModalPrimary}
+                onClick={() => applyTtsMode("elevenlabs")}
+              >
+                ElevenLabs (premium)
+              </button>
+              <button
+                type="button"
+                className={styles.ttsModalSecondary}
+                onClick={() => applyTtsMode("browser")}
+              >
+                Browser voice (free)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={styles.desktopFallback} aria-hidden />
       <video
         ref={videoRef}
@@ -846,6 +1091,86 @@ export default function DemoView({
                 Reset
               </button>
             </div>
+            <div className={styles.voiceToggle}>
+              <span>
+                TTS: <strong>{ttsMode ?? "(not set)"}</strong>
+              </span>
+              <button
+                type="button"
+                className={styles.voiceToggleSwitch}
+                onClick={() => applyTtsMode(ttsMode === "browser" ? "elevenlabs" : "browser")}
+              >
+                Switch to {ttsMode === "browser" ? "ElevenLabs" : "browser"}
+              </button>
+            </div>
+            {ttsMode === "browser" && (
+              <div className={styles.voicePicker}>
+                <label className={styles.voicePickerLabel}>
+                  Voice
+                  <select
+                    value={selectedVoiceURI ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value || null;
+                      setSelectedVoiceURI(v);
+                      selectedVoiceURIRef.current = v;
+                      try {
+                        if (v) localStorage.setItem(VOICE_URI_STORAGE_KEY, v);
+                        else localStorage.removeItem(VOICE_URI_STORAGE_KEY);
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  >
+                    <option value="">(system default)</option>
+                    {voices.map((v) => (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        {v.name} — {v.lang}
+                        {v.default ? " ★" : ""}
+                        {v.localService ? "" : " (remote)"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className={styles.voicePickerActions}>
+                  <span className={styles.voiceCount}>
+                    {voices.length === 0
+                      ? "no voices found — install a system TTS engine (e.g. espeak)"
+                      : `${voices.length} voice${voices.length === 1 ? "" : "s"} available`}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={voices.length === 0}
+                    onClick={() => {
+                      speakInBrowser({ text: "Hi, I'm your avatar. This is a voice test." }).catch(
+                        (err) => console.warn("voice test failed:", err),
+                      );
+                    }}
+                  >
+                    Test
+                  </button>
+                </div>
+                <div className={styles.narrationStats}>
+                  <div>
+                    narrations heard:{" "}
+                    <strong>{narrationStats.heard}</strong>
+                  </div>
+                  <div>
+                    last poll:{" "}
+                    {narrationStats.lastPollAt
+                      ? `${Math.max(0, Math.round((Date.now() - narrationStats.lastPollAt) / 1000))}s ago${
+                          narrationStats.lastPollOk ? "" : " (failed)"
+                        }`
+                      : "—"}
+                  </div>
+                  <div>
+                    last narration:{" "}
+                    {narrationStats.lastNarrationAt
+                      ? `${Math.max(0, Math.round((Date.now() - narrationStats.lastNarrationAt) / 1000))}s ago`
+                      : "none yet"}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
