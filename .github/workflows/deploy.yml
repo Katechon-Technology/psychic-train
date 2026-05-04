@@ -120,7 +120,7 @@ jobs:
         include:
           - name: arcade-stream-client
             context: plugins
-            dockerfile: arcade/stream-client/Dockerfile
+            dockerfile: plugins/arcade/stream-client/Dockerfile
             depends_on: playwright-browser-stream-client
 
     steps:

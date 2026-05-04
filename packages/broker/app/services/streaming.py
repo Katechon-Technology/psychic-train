@@ -65,12 +65,15 @@ async def spawn_stream_client(
                     headers={"X-Stream-Agent-Key": config.STREAM_AGENT_KEY},
                     timeout=180.0,
                 )
-            if r.status_code != 200:
-                logging.error(f"[streaming] stream-agent returned {r.status_code}: {r.text}")
-                return None
         except Exception as e:
-            logging.error(f"[streaming] stream-agent spawn failed: {e}")
-            return None
+            # Don't swallow — the caller's spawn_session expects an exception to
+            # mark the session failed. Returning None here used to leave sessions
+            # in `waiting` with stream_url=NULL forever.
+            raise RuntimeError(f"stream-agent spawn unreachable: {e}") from e
+        if r.status_code != 200:
+            raise RuntimeError(
+                f"stream-agent /spawn/stream-client returned {r.status_code}: {r.text}"
+            )
     else:
         await _stop_container(container_name)
         cmd = ["docker", "run", "-d", "--name", container_name]
