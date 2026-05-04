@@ -15,11 +15,20 @@ jobs:
     outputs:
       game: ${{ steps.filter.outputs.game }}
       stream: ${{ steps.filter.outputs.stream }}
+      base: ${{ steps.filter.outputs.stream-client-base }}
+      images: ${{ steps.compute.outputs.images }}
+      dependent: ${{ steps.compute.outputs.dependent }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # `game` / `stream` gate the deploy jobs.
+          # The remaining filters are named after the image they trigger; each
+          # filter lists every path that should rebuild that image (its own
+          # source AND any base image it FROMs). The `compute` step below
+          # turns the list of matched filters into the build matrix.
           filters: |
             game:
               - 'packages/broker/**'
@@ -35,7 +44,86 @@ jobs:
               - 'plugins/**/stream-client/**'
               - 'machines/stream-server/**'
 
+            stream-client-base:
+              - 'packages/stream-client-base/**'
+
+            broker:
+              - 'packages/broker/**'
+            frontend:
+              - 'packages/frontend/**'
+            stream-agent:
+              - 'packages/stream-agent/**'
+            vtuber-overlay:
+              - 'packages/vtuber-overlay/**'
+
+            factorio-agent:
+              - 'plugins/factorio/agent/**'
+            factorio-stream-client:
+              - 'plugins/factorio/stream-client/**'
+              - 'packages/stream-client-base/**'
+
+            minecraft-env:
+              - 'plugins/minecraft/environment/**'
+            minecraft-agent:
+              - 'plugins/minecraft/agent/**'
+            minecraft-stream-client:
+              - 'plugins/minecraft/stream-client/**'
+              - 'packages/stream-client-base/**'
+
+            playwright-browser-agent:
+              - 'plugins/playwright-browser/agent/**'
+            playwright-browser-stream-client:
+              - 'plugins/playwright-browser/stream-client/**'
+              - 'packages/stream-client-base/**'
+
+            arcade-stream-client:
+              - 'plugins/arcade/stream-client/**'
+              - 'plugins/playwright-browser/stream-client/**'
+              - 'packages/stream-client-base/**'
+
+      - id: compute
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        run: |
+          # Hardcoded image metadata. The `compute` step below intersects this
+          # with the list of paths-filter outputs that matched.
+          cat > /tmp/all-images.json <<'EOF'
+          {
+            "matrix": [
+              {"name":"broker",                            "context":"packages/broker"},
+              {"name":"frontend",                          "context":"packages/frontend"},
+              {"name":"stream-agent",                      "context":"packages/stream-agent"},
+              {"name":"vtuber-overlay",                    "context":".",                              "dockerfile":"packages/vtuber-overlay/Dockerfile"},
+              {"name":"factorio-agent",                    "context":"plugins/factorio/agent"},
+              {"name":"factorio-stream-client",            "context":"plugins/factorio/stream-client"},
+              {"name":"minecraft-env",                     "context":"plugins/minecraft/environment"},
+              {"name":"minecraft-agent",                   "context":"plugins/minecraft/agent"},
+              {"name":"minecraft-stream-client",           "context":"plugins/minecraft/stream-client"},
+              {"name":"playwright-browser-agent",          "context":"plugins/playwright-browser/agent"},
+              {"name":"playwright-browser-stream-client",  "context":"plugins/playwright-browser/stream-client"}
+            ],
+            "dependent": [
+              {"name":"arcade-stream-client", "context":"plugins", "dockerfile":"plugins/arcade/stream-client/Dockerfile", "depends_on":"playwright-browser-stream-client"}
+            ]
+          }
+          EOF
+
+          echo "matched filters: $CHANGES"
+
+          MATRIX=$(jq -c --argjson changes "$CHANGES" \
+            '.matrix    | map(select(.name as $n | $changes | index($n)))' /tmp/all-images.json)
+          DEPENDENT=$(jq -c --argjson changes "$CHANGES" \
+            '.dependent | map(select(.name as $n | $changes | index($n)))' /tmp/all-images.json)
+
+          echo "matrix:    $MATRIX"
+          echo "dependent: $DEPENDENT"
+
+          echo "images=$MATRIX"        >> "$GITHUB_OUTPUT"
+          echo "dependent=$DEPENDENT"  >> "$GITHUB_OUTPUT"
+
   build-base:
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.base == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,35 +143,17 @@ jobs:
           tags: ghcr.io/katechon-technology/psychic-train-stream-client-base:latest
 
   build:
-    needs: [build-base]
+    needs: [detect-changes, build-base]
+    # Always-skipped build-base (when base didn't change) shouldn't block this.
+    if: |
+      always() &&
+      (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') &&
+      needs.detect-changes.outputs.images != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: broker
-            context: packages/broker
-          - name: frontend
-            context: packages/frontend
-          - name: stream-agent
-            context: packages/stream-agent
-          - name: vtuber-overlay
-            context: .
-            dockerfile: packages/vtuber-overlay/Dockerfile
-          - name: factorio-agent
-            context: plugins/factorio/agent
-          - name: factorio-stream-client
-            context: plugins/factorio/stream-client
-          - name: minecraft-env
-            context: plugins/minecraft/environment
-          - name: minecraft-agent
-            context: plugins/minecraft/agent
-          - name: minecraft-stream-client
-            context: plugins/minecraft/stream-client
-          - name: playwright-browser-agent
-            context: plugins/playwright-browser/agent
-          - name: playwright-browser-stream-client
-            context: plugins/playwright-browser/stream-client
+        include: ${{ fromJson(needs.detect-changes.outputs.images) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -112,16 +182,16 @@ jobs:
   # arcade-stream-client COPYs assets out of playwright-browser-stream-client,
   # so it has to wait for the matrix to finish and pull both base images.
   build-dependent:
-    needs: [build]
+    needs: [detect-changes, build]
+    if: |
+      always() &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      needs.detect-changes.outputs.dependent != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: arcade-stream-client
-            context: plugins
-            dockerfile: plugins/arcade/stream-client/Dockerfile
-            depends_on: playwright-browser-stream-client
+        include: ${{ fromJson(needs.detect-changes.outputs.dependent) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -149,8 +219,12 @@ jobs:
           tags: ghcr.io/katechon-technology/psychic-train-${{ matrix.name }}:latest
 
   deploy-game:
-    needs: [detect-changes, build]
-    if: needs.detect-changes.outputs.game == 'true'
+    needs: [detect-changes, build, build-dependent]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.game == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.build-dependent.result == 'success' || needs.build-dependent.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH
@@ -191,7 +265,11 @@ jobs:
 
   deploy-stream:
     needs: [detect-changes, build, build-dependent]
-    if: needs.detect-changes.outputs.stream == 'true'
+    if: |
+      always() &&
+      needs.detect-changes.outputs.stream == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.build-dependent.result == 'success' || needs.build-dependent.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH

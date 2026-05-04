@@ -121,6 +121,29 @@ async def volume_delete(name: str, _=Depends(require_auth)):
     return {"ok": True}
 
 
+class ExecRequest(BaseModel):
+    cmd: list[str]
+
+
+@app.post("/containers/{name}/exec")
+async def exec_in_container(name: str, req: ExecRequest, _=Depends(require_auth)):
+    """Run `docker exec <name> <cmd...>` and return stdout/stderr/returncode.
+    Used by the broker for cross-host workspace switches and similar one-shot
+    commands targeting containers spawned on this host."""
+    _ensure_docker_available()
+    if not req.cmd:
+        raise HTTPException(400, "cmd is required")
+    proc = await asyncio.create_subprocess_exec(
+        "docker", "exec", name, *req.cmd,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )
+    out, err = await proc.communicate()
+    if proc.returncode != 0:
+        msg = (err or out or b"").decode().strip()
+        raise HTTPException(500, msg or f"exec failed (rc={proc.returncode})")
+    return {"ok": True, "stdout": out.decode(), "stderr": err.decode()}
+
+
 @app.post("/containers/{name}/rtmp/start")
 async def rtmp_start(name: str, _=Depends(require_auth)):
     """Exec /scripts/start-rtmp.sh inside a running vtuber-overlay container."""

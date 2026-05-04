@@ -499,14 +499,31 @@ async def workspace_switch(
         slot = sess.slot
 
     container = _stream_container_name(kind, slot)
-    proc = await asyncio.create_subprocess_exec(
-        "docker", "exec", container, "wmctrl", "-s", str(workspace),
-        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
-    )
-    _, err = await proc.communicate()
-    if proc.returncode != 0:
-        msg = (err or b"").decode().strip()
-        raise RuntimeError(f"workspace switch failed: {msg}")
+    if config.STREAM_AGENT_URL:
+        # Two-server topology: stream-client lives on the stream server, so
+        # we can't `docker exec` it locally. Route through stream-agent.
+        import httpx
+        try:
+            async with httpx.AsyncClient() as client:
+                r = await client.post(
+                    f"{config.STREAM_AGENT_URL}/containers/{container}/exec",
+                    json={"cmd": ["wmctrl", "-s", str(workspace)]},
+                    headers={"X-Stream-Agent-Key": config.STREAM_AGENT_KEY},
+                    timeout=10.0,
+                )
+        except Exception as e:
+            raise RuntimeError(f"workspace switch failed: stream-agent unreachable: {e}") from e
+        if r.status_code != 200:
+            raise RuntimeError(f"workspace switch failed: {r.text}")
+    else:
+        proc = await asyncio.create_subprocess_exec(
+            "docker", "exec", container, "wmctrl", "-s", str(workspace),
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
+        )
+        _, err = await proc.communicate()
+        if proc.returncode != 0:
+            msg = (err or b"").decode().strip()
+            raise RuntimeError(f"workspace switch failed: {msg}")
 
     async with async_session_factory() as db:
         sess = await db.get(Session, session_id)
