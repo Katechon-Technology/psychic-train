@@ -1,0 +1,4074 @@
+[
+  {
+    "name": "HMAS Stirling (Garden Island)",
+    "country": "Australia",
+    "operator": "RAN / AUKUS submarine base",
+    "branch": "navy",
+    "lat": -32.235,
+    "lng": 115.691
+  },
+  {
+    "name": "Pine Gap (Joint Intelligence)",
+    "country": "Australia",
+    "operator": "ASD / CIA Joint Facility",
+    "branch": "army",
+    "lat": -23.799,
+    "lng": 133.737
+  },
+  {
+    "name": "RAAF Base Darwin",
+    "country": "Australia",
+    "operator": "RAAF / USMC Rotational",
+    "branch": "air_force",
+    "lat": -12.415,
+    "lng": 130.876
+  },
+  {
+    "name": "RAAF Base Tindal",
+    "country": "Australia",
+    "operator": "RAAF / USAF Rotational",
+    "branch": "air_force",
+    "lat": -14.521,
+    "lng": 132.378
+  },
+  {
+    "name": "Diego Garcia",
+    "country": "BIOT",
+    "operator": "USN / USAF",
+    "branch": "navy",
+    "lat": -7.316,
+    "lng": 72.411
+  },
+  {
+    "name": "Anshan Teng'ao Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 41.1,
+    "lng": 122.85
+  },
+  {
+    "name": "Ayang Ni Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.248,
+    "lng": 125.965
+  },
+  {
+    "name": "Belaya / Irkutsk",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 52.93,
+    "lng": 103.57
+  },
+  {
+    "name": "Ch'o do",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.551,
+    "lng": 124.835
+  },
+  {
+    "name": "Changjin-up",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.369,
+    "lng": 127.263
+  },
+  {
+    "name": "Changsha Datuopu Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 28.068,
+    "lng": 112.866
+  },
+  {
+    "name": "Changsha Tianxin Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 28.19,
+    "lng": 113.2
+  },
+  {
+    "name": "Changxing Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 30.96,
+    "lng": 119.72
+  },
+  {
+    "name": "Changyon Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.225,
+    "lng": 125.141
+  },
+  {
+    "name": "Chernigovka",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 44.35,
+    "lng": 133.0
+  },
+  {
+    "name": "Chik-Tong",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.723,
+    "lng": 126.681
+  },
+  {
+    "name": "Dalian Naval Shipyard",
+    "country": "China",
+    "operator": "PLAN (carrier construction)",
+    "branch": "navy",
+    "lat": 38.936,
+    "lng": 121.625
+  },
+  {
+    "name": "Dehua PLARF Base (Base 613)",
+    "country": "China",
+    "operator": "PLARF 61 Base",
+    "branch": "missile",
+    "lat": 25.494,
+    "lng": 118.241
+  },
+  {
+    "name": "Dingxin Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 40.296,
+    "lng": 99.75
+  },
+  {
+    "name": "Domna",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 51.9,
+    "lng": 113.43
+  },
+  {
+    "name": "Fiery Cross Reef",
+    "country": "China",
+    "operator": "PLA (SCS outpost)",
+    "branch": "air_force",
+    "lat": 9.55,
+    "lng": 112.892
+  },
+  {
+    "name": "Fiery Cross Reef",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 9.55,
+    "lng": 112.89
+  },
+  {
+    "name": "Foshan Shadi Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 23.08,
+    "lng": 113.07
+  },
+  {
+    "name": "Fuzhou Changle Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 25.935,
+    "lng": 119.663
+  },
+  {
+    "name": "Ganzhou PLARF Base",
+    "country": "China",
+    "operator": "PLARF 61 Base",
+    "branch": "missile",
+    "lat": 25.831,
+    "lng": 114.935
+  },
+  {
+    "name": "Guilin Qifengling Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 25.22,
+    "lng": 110.04
+  },
+  {
+    "name": "Haeju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.003,
+    "lng": 125.781
+  },
+  {
+    "name": "Haiyang PLARF Base (ICBM)",
+    "country": "China",
+    "operator": "PLARF 65 Base",
+    "branch": "missile",
+    "lat": 36.776,
+    "lng": 121.158
+  },
+  {
+    "name": "Hangzhou Jianqiao Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 30.23,
+    "lng": 120.43
+  },
+  {
+    "name": "Hoeyang Southeast",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.662,
+    "lng": 127.649
+  },
+  {
+    "name": "Hotan Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 37.039,
+    "lng": 79.866
+  },
+  {
+    "name": "Huangshan PLARF Base (Base 612)",
+    "country": "China",
+    "operator": "PLARF 61 Base",
+    "branch": "missile",
+    "lat": 29.714,
+    "lng": 118.337
+  },
+  {
+    "name": "Huian / Luocheng Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 25.0,
+    "lng": 118.8
+  },
+  {
+    "name": "Huian Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 25.028,
+    "lng": 118.802
+  },
+  {
+    "name": "Huizhou Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 23.05,
+    "lng": 114.6
+  },
+  {
+    "name": "Hwangju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.65,
+    "lng": 125.79
+  },
+  {
+    "name": "Hwangju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.65,
+    "lng": 125.793
+  },
+  {
+    "name": "Hwangsuwon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.68,
+    "lng": 128.15
+  },
+  {
+    "name": "Hwangsuwon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.682,
+    "lng": 128.151
+  },
+  {
+    "name": "Hyesan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.378,
+    "lng": 128.205
+  },
+  {
+    "name": "Hyon-ni",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.617,
+    "lng": 127.451
+  },
+  {
+    "name": "Ichon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.482,
+    "lng": 126.859
+  },
+  {
+    "name": "Ihyon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.128,
+    "lng": 125.85
+  },
+  {
+    "name": "Inchon Northeast",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.672,
+    "lng": 126.926
+  },
+  {
+    "name": "Jiande PLARF Base",
+    "country": "China",
+    "operator": "PLARF 61 Base",
+    "branch": "missile",
+    "lat": 29.48,
+    "lng": 119.281
+  },
+  {
+    "name": "Jiangnan Shipyard (Changxing Island)",
+    "country": "China",
+    "operator": "PLAN (carrier/destroyer construction)",
+    "branch": "navy",
+    "lat": 31.358,
+    "lng": 121.746
+  },
+  {
+    "name": "Jiaxing Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 30.75,
+    "lng": 120.7
+  },
+  {
+    "name": "Jinan Yaoqiang Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 36.857,
+    "lng": 117.216
+  },
+  {
+    "name": "Jining / Qufu Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 35.3,
+    "lng": 116.2
+  },
+  {
+    "name": "Kaechon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.754,
+    "lng": 125.901
+  },
+  {
+    "name": "Kang Da Ri",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.095,
+    "lng": 127.405
+  },
+  {
+    "name": "Kangdong",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.154,
+    "lng": 126.044
+  },
+  {
+    "name": "Kilchu Highway",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 40.917,
+    "lng": 129.314
+  },
+  {
+    "name": "Kojo",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.839,
+    "lng": 127.873
+  },
+  {
+    "name": "Koksan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.69,
+    "lng": 126.6
+  },
+  {
+    "name": "Koksan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.693,
+    "lng": 126.602
+  },
+  {
+    "name": "Kuktong",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.247,
+    "lng": 129.565
+  },
+  {
+    "name": "Kuum-ni",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.86,
+    "lng": 127.909
+  },
+  {
+    "name": "Kwaksan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.73,
+    "lng": 125.11
+  },
+  {
+    "name": "Kwaksan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.731,
+    "lng": 125.113
+  },
+  {
+    "name": "Kyongsong-Chuul",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.561,
+    "lng": 129.629
+  },
+  {
+    "name": "Kyzyl",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 51.67,
+    "lng": 94.4
+  },
+  {
+    "name": "Leping PLARF Base",
+    "country": "China",
+    "operator": "PLARF 62 Base",
+    "branch": "missile",
+    "lat": 28.963,
+    "lng": 117.129
+  },
+  {
+    "name": "Lingshui Air Base",
+    "country": "China",
+    "operator": "PLAAF / PLAN",
+    "branch": "air_force",
+    "lat": 18.507,
+    "lng": 110.034
+  },
+  {
+    "name": "Longtian Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 25.674,
+    "lng": 119.507
+  },
+  {
+    "name": "Longtian Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 25.57,
+    "lng": 119.46
+  },
+  {
+    "name": "Luoyang PLARF Base",
+    "country": "China",
+    "operator": "PLARF 63 Base",
+    "branch": "missile",
+    "lat": 34.62,
+    "lng": 112.454
+  },
+  {
+    "name": "Maengsan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.651,
+    "lng": 126.673
+  },
+  {
+    "name": "Manpo",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.139,
+    "lng": 126.355
+  },
+  {
+    "name": "Meizhou PLARF Base",
+    "country": "China",
+    "operator": "PLARF 61 Base",
+    "branch": "missile",
+    "lat": 24.288,
+    "lng": 116.122
+  },
+  {
+    "name": "Mirim",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.02,
+    "lng": 125.84
+  },
+  {
+    "name": "Mirim",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.017,
+    "lng": 125.845
+  },
+  {
+    "name": "Mischief Reef",
+    "country": "China",
+    "operator": "PLA (SCS outpost)",
+    "branch": "navy",
+    "lat": 9.904,
+    "lng": 115.536
+  },
+  {
+    "name": "Mischief Reef",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 9.92,
+    "lng": 115.54
+  },
+  {
+    "name": "Nanchang Xiangtang Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 28.4,
+    "lng": 115.93
+  },
+  {
+    "name": "Nanning Wuxu Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 22.609,
+    "lng": 108.171
+  },
+  {
+    "name": "Nanyang PLARF Base",
+    "country": "China",
+    "operator": "PLARF 63 Base",
+    "branch": "missile",
+    "lat": 33.003,
+    "lng": 112.528
+  },
+  {
+    "name": "Ningbo / Zhoushan Naval Base",
+    "country": "China",
+    "operator": "PLAN Eastern Theater",
+    "branch": "navy",
+    "lat": 29.949,
+    "lng": 122.094
+  },
+  {
+    "name": "Nuchon Ni Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.23,
+    "lng": 126.268
+  },
+  {
+    "name": "Okpyong ni",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.267,
+    "lng": 127.324
+  },
+  {
+    "name": "Ongjin",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 37.928,
+    "lng": 125.42
+  },
+  {
+    "name": "Orang",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.428,
+    "lng": 129.648
+  },
+  {
+    "name": "Orang (Rang)",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 41.43,
+    "lng": 129.65
+  },
+  {
+    "name": "Paegam",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.945,
+    "lng": 128.859
+  },
+  {
+    "name": "Panghyon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.93,
+    "lng": 125.21
+  },
+  {
+    "name": "Panghyon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.929,
+    "lng": 125.208
+  },
+  {
+    "name": "Panghyon South Hwy Strip",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 39.883,
+    "lng": 125.162
+  },
+  {
+    "name": "Pyongsul Li",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.713,
+    "lng": 126.725
+  },
+  {
+    "name": "Pyongyang",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.937,
+    "lng": 125.63
+  },
+  {
+    "name": "Pyongyang (Mirim area)",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 38.94,
+    "lng": 125.63
+  },
+  {
+    "name": "Qingdao / Jiaozhou Naval Base",
+    "country": "China",
+    "operator": "PLAN Northern Theater",
+    "branch": "navy",
+    "lat": 36.1,
+    "lng": 120.272
+  },
+  {
+    "name": "Quzhou Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 28.97,
+    "lng": 118.9
+  },
+  {
+    "name": "Samjiyon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.91,
+    "lng": 128.41
+  },
+  {
+    "name": "Samjiyon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.906,
+    "lng": 128.409
+  },
+  {
+    "name": "Sangwon Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.846,
+    "lng": 126.064
+  },
+  {
+    "name": "Sanya Base",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 18.34,
+    "lng": 109.53
+  },
+  {
+    "name": "Sanya Phoenix Air Base",
+    "country": "China",
+    "operator": "PLAN Aviation",
+    "branch": "air_force",
+    "lat": 18.303,
+    "lng": 109.412
+  },
+  {
+    "name": "Shanghai Wusong Naval Base",
+    "country": "China",
+    "operator": "PLAN Eastern Theater",
+    "branch": "navy",
+    "lat": 31.398,
+    "lng": 121.503
+  },
+  {
+    "name": "Shantou Waisha Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 23.4,
+    "lng": 116.68
+  },
+  {
+    "name": "Shaodong / Leiyang cluster",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 26.5,
+    "lng": 111.5
+  },
+  {
+    "name": "Shuimen Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 26.94,
+    "lng": 120.08
+  },
+  {
+    "name": "Sinhung Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.181,
+    "lng": 127.544
+  },
+  {
+    "name": "Sinuiju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.08,
+    "lng": 124.41
+  },
+  {
+    "name": "Sinuiju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.083,
+    "lng": 124.408
+  },
+  {
+    "name": "Sohung South",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.36,
+    "lng": 126.221
+  },
+  {
+    "name": "Sonchon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.918,
+    "lng": 124.839
+  },
+  {
+    "name": "Sondok",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.75,
+    "lng": 127.48
+  },
+  {
+    "name": "Sondok",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.746,
+    "lng": 127.477
+  },
+  {
+    "name": "Subi Reef",
+    "country": "China",
+    "operator": "PLA (SCS outpost)",
+    "branch": "air_force",
+    "lat": 10.923,
+    "lng": 114.083
+  },
+  {
+    "name": "Subi Reef",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 10.93,
+    "lng": 114.08
+  },
+  {
+    "name": "Suixi Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 21.374,
+    "lng": 110.228
+  },
+  {
+    "name": "Suixi Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 21.4,
+    "lng": 110.25
+  },
+  {
+    "name": "Sunan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.2,
+    "lng": 125.67
+  },
+  {
+    "name": "Sunan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.201,
+    "lng": 125.672
+  },
+  {
+    "name": "Sunchon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.41,
+    "lng": 125.9
+  },
+  {
+    "name": "Sundian PLARF Base (ICBM)",
+    "country": "China",
+    "operator": "PLARF 66 Base",
+    "branch": "missile",
+    "lat": 40.2,
+    "lng": 113.2
+  },
+  {
+    "name": "Sungam ni",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 41.672,
+    "lng": 129.673
+  },
+  {
+    "name": "T'aet'an-pihaengjang (Taetan)",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 38.134,
+    "lng": 125.245
+  },
+  {
+    "name": "Taebukpo Ri",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.33,
+    "lng": 126.871
+  },
+  {
+    "name": "Taechon",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.904,
+    "lng": 125.492
+  },
+  {
+    "name": "Taechon Northwest",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.992,
+    "lng": 125.36
+  },
+  {
+    "name": "Taetan (T'aet'an)",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 38.13,
+    "lng": 125.25
+  },
+  {
+    "name": "Toha Ri North",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.703,
+    "lng": 126.288
+  },
+  {
+    "name": "Toksan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.994,
+    "lng": 127.617
+  },
+  {
+    "name": "Uglovoye / Tsentralnaya",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 43.4,
+    "lng": 132.7
+  },
+  {
+    "name": "Uiju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.15,
+    "lng": 124.5
+  },
+  {
+    "name": "Uiju",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 40.15,
+    "lng": 124.498
+  },
+  {
+    "name": "Ukrainka / Seryshevo",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 51.69,
+    "lng": 128.45
+  },
+  {
+    "name": "Uthachi",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.913,
+    "lng": 125.8
+  },
+  {
+    "name": "Vozdvizhenka / Ussuriysk",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 43.9,
+    "lng": 131.99
+  },
+  {
+    "name": "Weifang Nanyuan Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 36.7,
+    "lng": 119.1
+  },
+  {
+    "name": "Wong Yo Ri Highway Strip",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 38.596,
+    "lng": 126.527
+  },
+  {
+    "name": "Wonsan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.16,
+    "lng": 127.49
+  },
+  {
+    "name": "Wonsan",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.161,
+    "lng": 127.485
+  },
+  {
+    "name": "Woody Island (Yongxing)",
+    "country": "China",
+    "operator": "PLA Sansha Garrison",
+    "branch": "navy",
+    "lat": 16.833,
+    "lng": 112.333
+  },
+  {
+    "name": "Woody Island (Yongxing)",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 16.83,
+    "lng": 112.34
+  },
+  {
+    "name": "Wuhan Wangjiadun Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 30.5,
+    "lng": 114.211
+  },
+  {
+    "name": "Wuhu Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 31.4,
+    "lng": 118.4
+  },
+  {
+    "name": "Wuyishan Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 27.7,
+    "lng": 118.0
+  },
+  {
+    "name": "Xiangshan Naval Base",
+    "country": "China",
+    "operator": "PLAN Eastern Theater",
+    "branch": "navy",
+    "lat": 29.48,
+    "lng": 121.933
+  },
+  {
+    "name": "Yong Hung",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.536,
+    "lng": 127.291
+  },
+  {
+    "name": "Yulin Naval Base",
+    "country": "China",
+    "operator": "PLAN (SSBN)",
+    "branch": "navy",
+    "lat": 18.226,
+    "lng": 109.557
+  },
+  {
+    "name": "Yulin Naval Base",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 18.22,
+    "lng": 109.58
+  },
+  {
+    "name": "Zhangzhou Air Base",
+    "country": "China",
+    "operator": "PLAAF",
+    "branch": "air_force",
+    "lat": 24.575,
+    "lng": 117.588
+  },
+  {
+    "name": "Zhangzhou Air Base",
+    "country": "China",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 24.55,
+    "lng": 117.65
+  },
+  {
+    "name": "Zhanjiang Naval Base",
+    "country": "China",
+    "operator": "PLAN Southern Theater",
+    "branch": "navy",
+    "lat": 21.19,
+    "lng": 110.405
+  },
+  {
+    "name": "Zhanjiang Naval HQ",
+    "country": "China",
+    "operator": "",
+    "branch": "navy",
+    "lat": 21.27,
+    "lng": 110.36
+  },
+  {
+    "name": "Andersen AFB",
+    "country": "Guam",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 13.58,
+    "lng": 144.93
+  },
+  {
+    "name": "Andersen Air Force Base",
+    "country": "Guam",
+    "operator": "USAF 36th Wing",
+    "branch": "air_force",
+    "lat": 13.584,
+    "lng": 144.93
+  },
+  {
+    "name": "Naval Base Guam",
+    "country": "Guam",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 13.444,
+    "lng": 144.653
+  },
+  {
+    "name": "Naval Station Pearl Harbor",
+    "country": "Hawaii",
+    "operator": "USN / USINDOPACOM HQ",
+    "branch": "navy",
+    "lat": 21.345,
+    "lng": -157.974
+  },
+  {
+    "name": "Ambala AB",
+    "country": "India",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 30.37,
+    "lng": 76.82
+  },
+  {
+    "name": "Hindon AB",
+    "country": "India",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 28.7,
+    "lng": 77.2
+  },
+  {
+    "name": "Project Seabird",
+    "country": "India",
+    "operator": "",
+    "branch": "navy",
+    "lat": 14.8,
+    "lng": 74.11
+  },
+  {
+    "name": "Sulur AB",
+    "country": "India",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 11.03,
+    "lng": 77.08
+  },
+  {
+    "name": "Abadan Airport (mil/civil)",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 30.36444,
+    "lng": 48.23111
+  },
+  {
+    "name": "Abu Musa Island Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 25.87556,
+    "lng": 55.03278
+  },
+  {
+    "name": "Abu Musa Island IRGCN",
+    "country": "Iran",
+    "operator": "IRGCN",
+    "branch": "navy",
+    "lat": 25.87,
+    "lng": 55.03
+  },
+  {
+    "name": "Ahmadi Military Air Field",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 29.09917,
+    "lng": 51.03528
+  },
+  {
+    "name": "Ahvaz Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 31.33694,
+    "lng": 48.76111
+  },
+  {
+    "name": "Babolsar (Samen-al-Hojaj)",
+    "country": "Iran",
+    "operator": "IRGCN",
+    "branch": "navy",
+    "lat": 36.7,
+    "lng": 52.66
+  },
+  {
+    "name": "Badr Air Base (Sepah)",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.62111,
+    "lng": 51.69694
+  },
+  {
+    "name": "Bandar Anzali Naval Base",
+    "country": "Iran",
+    "operator": "IRIN",
+    "branch": "navy",
+    "lat": 37.47,
+    "lng": 49.46
+  },
+  {
+    "name": "Bandar Lengeh Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 26.53139,
+    "lng": 54.82139
+  },
+  {
+    "name": "BandarAbbasInternationalAirportBandarAbbas",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 27.21806,
+    "lng": 56.37778
+  },
+  {
+    "name": "BirjandInternationalAirportBirjand",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.89806,
+    "lng": 59.26611
+  },
+  {
+    "name": "Bishe Kola Air Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.655,
+    "lng": 52.34944
+  },
+  {
+    "name": "Bushehr Naval Base",
+    "country": "Iran",
+    "operator": "IRIN",
+    "branch": "navy",
+    "lat": 28.97,
+    "lng": 50.84
+  },
+  {
+    "name": "BushehrAirportBushehr",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 28.94472,
+    "lng": 50.83444
+  },
+  {
+    "name": "ChahbaharAirBaseChahbahar",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 25.44472,
+    "lng": 60.38194
+  },
+  {
+    "name": "DoshanTappehAirBaseTehran",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 35.70306,
+    "lng": 51.47528
+  },
+  {
+    "name": "Farsi Island IRGCN",
+    "country": "Iran",
+    "operator": "IRGCN",
+    "branch": "navy",
+    "lat": 26.57,
+    "lng": 52.37
+  },
+  {
+    "name": "Gorgan Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.90694,
+    "lng": 54.40444
+  },
+  {
+    "name": "Gulf4th Naval RegionBandar Asaluyeh",
+    "country": "Iran",
+    "operator": "IRIN/IRGCN",
+    "branch": "navy",
+    "lat": 27.48,
+    "lng": 52.62
+  },
+  {
+    "name": "Gulf5th Naval RegionBandar Lengeh",
+    "country": "Iran",
+    "operator": "IRIN/IRGCN",
+    "branch": "navy",
+    "lat": 26.53,
+    "lng": 54.88
+  },
+  {
+    "name": "Hamadan(Shahrokhi)AirBaseHamadan",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 35.21028,
+    "lng": 48.65333
+  },
+  {
+    "name": "Hesa Air Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.92889,
+    "lng": 51.56111
+  },
+  {
+    "name": "Ilam Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 33.62583,
+    "lng": 46.41806
+  },
+  {
+    "name": "Imam Ali Naval Base (Chahbahar)",
+    "country": "Iran",
+    "operator": "IRGCN",
+    "branch": "navy",
+    "lat": 25.29,
+    "lng": 60.64
+  },
+  {
+    "name": "Isfahan/KhatamiAirBaseIsfahan",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.74694,
+    "lng": 51.85472
+  },
+  {
+    "name": "Jask Air Field",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 25.65306,
+    "lng": 57.7975
+  },
+  {
+    "name": "Kashan Air Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 33.89528,
+    "lng": 51.57694
+  },
+  {
+    "name": "KermanAirportKerman",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 30.26583,
+    "lng": 56.95944
+  },
+  {
+    "name": "KermanshahAirportKermanshah",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 34.35014,
+    "lng": 47.16479
+  },
+  {
+    "name": "Kharg Island Naval Base",
+    "country": "Iran",
+    "operator": "IRIN",
+    "branch": "navy",
+    "lat": 29.24,
+    "lng": 50.32
+  },
+  {
+    "name": "Khark Island Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 29.25889,
+    "lng": 50.32389
+  },
+  {
+    "name": "Khorramabad Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 33.43417,
+    "lng": 48.28417
+  },
+  {
+    "name": "Kish Island Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 26.52583,
+    "lng": 53.98111
+  },
+  {
+    "name": "Kushke Nosrat / Manzariyeh",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 34.98389,
+    "lng": 50.80611
+  },
+  {
+    "name": "Main Naval HQ (Bandar Abbas)",
+    "country": "Iran",
+    "operator": "IRIN",
+    "branch": "navy",
+    "lat": 27.18,
+    "lng": 56.27
+  },
+  {
+    "name": "MashhadInternationalAirportMashhad",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.23528,
+    "lng": 59.64389
+  },
+  {
+    "name": "MasjedSoleymanAirBaseMasjedSoleyman",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 31.99944,
+    "lng": 49.27111
+  },
+  {
+    "name": "MehrabadInternationalAirportTehran",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 35.68861,
+    "lng": 51.31278
+  },
+  {
+    "name": "Nain Air Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.86278,
+    "lng": 53.06
+  },
+  {
+    "name": "Noshahr Airport (mil/civil)",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.66333,
+    "lng": 51.46472
+  },
+  {
+    "name": "Oghab 44 Underground Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 28.05639,
+    "lng": 55.50667
+  },
+  {
+    "name": "OmidiyehAirBaseOmidiyeh",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 30.83083,
+    "lng": 49.54306
+  },
+  {
+    "name": "Parsabad-Moghan Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 39.60472,
+    "lng": 47.87778
+  },
+  {
+    "name": "Persian Gulf3rd Naval RegionMahshahr",
+    "country": "Iran",
+    "operator": "IRIN/IRGCN",
+    "branch": "navy",
+    "lat": 30.55,
+    "lng": 49.19
+  },
+  {
+    "name": "Qazvin Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.23972,
+    "lng": 50.04833
+  },
+  {
+    "name": "Qezel Qeshl Ag Air Field",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 39.11111,
+    "lng": 45.33389
+  },
+  {
+    "name": "Rasht Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 37.32361,
+    "lng": 49.60889
+  },
+  {
+    "name": "Sabzevar Airport",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 36.16808,
+    "lng": 57.59518
+  },
+  {
+    "name": "Sahand Airport (Maragheh)",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 37.34778,
+    "lng": 46.12611
+  },
+  {
+    "name": "ShirazInternationalAirportShiraz",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 29.53639,
+    "lng": 52.58833
+  },
+  {
+    "name": "Soga Air Base",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 37.62778,
+    "lng": 56.17306
+  },
+  {
+    "name": "TabrizAirBaseTabriz",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 38.12889,
+    "lng": 46.24
+  },
+  {
+    "name": "Urumiyeh Airport (mil/civil)",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 37.67083,
+    "lng": 45.07194
+  },
+  {
+    "name": "VahdatiAirBaseDezful",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 32.4325,
+    "lng": 48.40194
+  },
+  {
+    "name": "ZahedanInternationalAirportZahedan",
+    "country": "Iran",
+    "operator": "IRIAF",
+    "branch": "air_force",
+    "lat": 29.47472,
+    "lng": 60.90611
+  },
+  {
+    "name": "Nevatim AB",
+    "country": "Israel",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 31.21,
+    "lng": 35.01
+  },
+  {
+    "name": "Palmachim AB",
+    "country": "Israel",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 31.9,
+    "lng": 34.69
+  },
+  {
+    "name": "Ramat David AB",
+    "country": "Israel",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 32.66,
+    "lng": 35.18
+  },
+  {
+    "name": "Tel Nof AB",
+    "country": "Israel",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 31.84,
+    "lng": 34.82
+  },
+  {
+    "name": "Amami Garrison",
+    "country": "Japan",
+    "operator": "GSDF Amami Garrison",
+    "branch": "gsdf",
+    "lat": 28.381,
+    "lng": 129.494
+  },
+  {
+    "name": "Camp Hansen",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.441,
+    "lng": 127.775
+  },
+  {
+    "name": "Camp Naha (GSDF)",
+    "country": "Japan",
+    "operator": "GSDF 15th Brigade",
+    "branch": "gsdf",
+    "lat": 26.334,
+    "lng": 127.769
+  },
+  {
+    "name": "Camp Zama",
+    "country": "Japan",
+    "operator": "US Army Japan",
+    "branch": "army",
+    "lat": 35.488,
+    "lng": 139.395
+  },
+  {
+    "name": "Chitose Air Base",
+    "country": "Japan",
+    "operator": "ASDF 2nd Air Wing",
+    "branch": "asdf",
+    "lat": 42.795,
+    "lng": 141.666
+  },
+  {
+    "name": "Fleet Activities Sasebo",
+    "country": "Japan",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 33.159,
+    "lng": 129.722
+  },
+  {
+    "name": "Fleet Activities Yokosuka",
+    "country": "Japan",
+    "operator": "USN 7th Fleet",
+    "branch": "navy",
+    "lat": 35.283,
+    "lng": 139.671
+  },
+  {
+    "name": "Hamamatsu Air Base",
+    "country": "Japan",
+    "operator": "ASDF Air Defense Command",
+    "branch": "asdf",
+    "lat": 34.75,
+    "lng": 137.703
+  },
+  {
+    "name": "Iruma Air Base",
+    "country": "Japan",
+    "operator": "ASDF Central Air Command HQ",
+    "branch": "asdf",
+    "lat": 35.842,
+    "lng": 139.411
+  },
+  {
+    "name": "Kadena Air Base",
+    "country": "Japan",
+    "operator": "USAF 18th Wing",
+    "branch": "air_force",
+    "lat": 26.351,
+    "lng": 127.767
+  },
+  {
+    "name": "Kanoya Air Base (MSDF)",
+    "country": "Japan",
+    "operator": "MSDF Fleet Air Wing 1",
+    "branch": "msdf",
+    "lat": 31.367,
+    "lng": 130.845
+  },
+  {
+    "name": "Komatsu Air Base",
+    "country": "Japan",
+    "operator": "ASDF 6th Air Wing",
+    "branch": "asdf",
+    "lat": 36.395,
+    "lng": 136.407
+  },
+  {
+    "name": "Kure Naval Base",
+    "country": "Japan",
+    "operator": "MSDF Kure District",
+    "branch": "msdf",
+    "lat": 34.233,
+    "lng": 132.566
+  },
+  {
+    "name": "MCAS Iwakuni",
+    "country": "Japan",
+    "operator": "USMC / USN",
+    "branch": "marines",
+    "lat": 34.144,
+    "lng": 132.236
+  },
+  {
+    "name": "Maizuru Naval Base",
+    "country": "Japan",
+    "operator": "MSDF Maizuru District",
+    "branch": "msdf",
+    "lat": 35.469,
+    "lng": 135.383
+  },
+  {
+    "name": "Marine Corps Air Station Futenma",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.274,
+    "lng": 127.755
+  },
+  {
+    "name": "Misawa Air Base",
+    "country": "Japan",
+    "operator": "USAF 35th Fighter Wing",
+    "branch": "air_force",
+    "lat": 40.703,
+    "lng": 141.368
+  },
+  {
+    "name": "Misawa Air Base (ASDF)",
+    "country": "Japan",
+    "operator": "ASDF 3rd Air Wing",
+    "branch": "asdf",
+    "lat": 40.706,
+    "lng": 141.371
+  },
+  {
+    "name": "Miyako Island Garrison",
+    "country": "Japan",
+    "operator": "GSDF Miyako Garrison",
+    "branch": "gsdf",
+    "lat": 24.791,
+    "lng": 125.281
+  },
+  {
+    "name": "NAF Atsugi",
+    "country": "Japan",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.455,
+    "lng": 139.449
+  },
+  {
+    "name": "Naha Air Base",
+    "country": "Japan",
+    "operator": "ASDF 9th Air Wing",
+    "branch": "asdf",
+    "lat": 26.196,
+    "lng": 127.646
+  },
+  {
+    "name": "Nyutabaru Air Base",
+    "country": "Japan",
+    "operator": "ASDF 5th Air Wing",
+    "branch": "asdf",
+    "lat": 32.084,
+    "lng": 131.451
+  },
+  {
+    "name": "Ominato Naval Base",
+    "country": "Japan",
+    "operator": "MSDF Ominato District",
+    "branch": "msdf",
+    "lat": 41.279,
+    "lng": 141.135
+  },
+  {
+    "name": "Sasebo Naval Base (MSDF)",
+    "country": "Japan",
+    "operator": "MSDF Sasebo District",
+    "branch": "msdf",
+    "lat": 33.165,
+    "lng": 129.715
+  },
+  {
+    "name": "Tsuiki Air Base",
+    "country": "Japan",
+    "operator": "ASDF 8th Air Wing",
+    "branch": "asdf",
+    "lat": 33.685,
+    "lng": 131.041
+  },
+  {
+    "name": "White Beach Naval Facility",
+    "country": "Japan",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 26.334,
+    "lng": 127.897
+  },
+  {
+    "name": "Yokosuka Naval Base (MSDF)",
+    "country": "Japan",
+    "operator": "MSDF Fleet HQ",
+    "branch": "msdf",
+    "lat": 35.29,
+    "lng": 139.665
+  },
+  {
+    "name": "Yokota Air Base",
+    "country": "Japan",
+    "operator": "USAF 374th Airlift Wing",
+    "branch": "air_force",
+    "lat": 35.748,
+    "lng": 139.348
+  },
+  {
+    "name": "Yonaguni Garrison",
+    "country": "Japan",
+    "operator": "GSDF Yonaguni Coastal Surveillance",
+    "branch": "gsdf",
+    "lat": 24.467,
+    "lng": 122.978
+  },
+  {
+    "name": "Haeju Forward Naval Base",
+    "country": "North Korea",
+    "operator": "KPN",
+    "branch": "navy",
+    "lat": 38.033,
+    "lng": 125.714
+  },
+  {
+    "name": "Kaechon Air Base",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.752,
+    "lng": 125.89
+  },
+  {
+    "name": "Koksan Long-Range Artillery Base",
+    "country": "North Korea",
+    "operator": "KPA Artillery Corps",
+    "branch": "army",
+    "lat": 38.33,
+    "lng": 126.586
+  },
+  {
+    "name": "Kusong-ri",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 39.998,
+    "lng": 124.571
+  },
+  {
+    "name": "Nampo Naval Base",
+    "country": "North Korea",
+    "operator": "KPN West Fleet",
+    "branch": "navy",
+    "lat": 38.737,
+    "lng": 125.408
+  },
+  {
+    "name": "Punggye-ri Nuclear Test Site",
+    "country": "North Korea",
+    "operator": "DPRK Nuclear Program",
+    "branch": "nuclear",
+    "lat": 41.281,
+    "lng": 129.104
+  },
+  {
+    "name": "Riman-ri (Yongnim)",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 40.48,
+    "lng": 126.5
+  },
+  {
+    "name": "Sangnam-ri",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 40.84,
+    "lng": 128.54
+  },
+  {
+    "name": "Sinpo Submarine Base",
+    "country": "North Korea",
+    "operator": "KPN (SLBM)",
+    "branch": "navy",
+    "lat": 40.024,
+    "lng": 128.178
+  },
+  {
+    "name": "Sinpo-Mayang",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 39.99,
+    "lng": 128.2
+  },
+  {
+    "name": "Sohae Satellite Launch Station",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 39.66,
+    "lng": 124.71
+  },
+  {
+    "name": "Sohae Satellite Launching Station",
+    "country": "North Korea",
+    "operator": "DPRK NADA",
+    "branch": "missile",
+    "lat": 39.66,
+    "lng": 124.705
+  },
+  {
+    "name": "Tonghae Satellite Launch Station",
+    "country": "North Korea",
+    "operator": "",
+    "branch": "missile",
+    "lat": 40.86,
+    "lng": 129.67
+  },
+  {
+    "name": "Tonghae Satellite Launching Ground",
+    "country": "North Korea",
+    "operator": "DPRK NADA",
+    "branch": "missile",
+    "lat": 40.856,
+    "lng": 129.665
+  },
+  {
+    "name": "Wonsan-Kalma Air Base",
+    "country": "North Korea",
+    "operator": "KPAF",
+    "branch": "air_force",
+    "lat": 39.167,
+    "lng": 127.487
+  },
+  {
+    "name": "Yongbyon Nuclear Complex",
+    "country": "North Korea",
+    "operator": "DPRK Nuclear Program",
+    "branch": "nuclear",
+    "lat": 39.796,
+    "lng": 125.754
+  },
+  {
+    "name": "Jacobabad",
+    "country": "Pakistan",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 28.28,
+    "lng": 68.45
+  },
+  {
+    "name": "Kamra",
+    "country": "Pakistan",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 33.87,
+    "lng": 72.4
+  },
+  {
+    "name": "Sargodha",
+    "country": "Pakistan",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 32.05,
+    "lng": 72.67
+  },
+  {
+    "name": "Antonio Bautista Air Base (Palawan)",
+    "country": "Philippines",
+    "operator": "Philippine Air Force",
+    "branch": "air_force",
+    "lat": 9.742,
+    "lng": 118.759
+  },
+  {
+    "name": "Balabac Naval Station",
+    "country": "Philippines",
+    "operator": "Philippine Navy",
+    "branch": "navy",
+    "lat": 7.986,
+    "lng": 117.062
+  },
+  {
+    "name": "Basa Air Base",
+    "country": "Philippines",
+    "operator": "Philippine Air Force",
+    "branch": "air_force",
+    "lat": 14.988,
+    "lng": 120.493
+  },
+  {
+    "name": "Clark Air Base (EDCA site)",
+    "country": "Philippines",
+    "operator": "Philippine Air Force / US EDCA",
+    "branch": "air_force",
+    "lat": 15.186,
+    "lng": 120.56
+  },
+  {
+    "name": "Lal-lo (EDCA site, Cagayan)",
+    "country": "Philippines",
+    "operator": "Philippine Army / US EDCA",
+    "branch": "army",
+    "lat": 18.2,
+    "lng": 121.659
+  },
+  {
+    "name": "Subic Bay (EDCA site)",
+    "country": "Philippines",
+    "operator": "Philippine Navy / US EDCA",
+    "branch": "navy",
+    "lat": 14.794,
+    "lng": 120.281
+  },
+  {
+    "name": "Erebuni",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 40.12,
+    "lng": 44.46
+  },
+  {
+    "name": "Etorofu / Iturup (Kuril Islands)",
+    "country": "Russia",
+    "operator": "Russian Army 18th MG Div",
+    "branch": "army",
+    "lat": 44.927,
+    "lng": 147.863
+  },
+  {
+    "name": "Fokino Naval Base",
+    "country": "Russia",
+    "operator": "Russian Pacific Fleet",
+    "branch": "navy",
+    "lat": 42.961,
+    "lng": 132.447
+  },
+  {
+    "name": "Gissar",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 38.52,
+    "lng": 68.55
+  },
+  {
+    "name": "Gyumri (102nd Base)",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 40.79,
+    "lng": 43.85
+  },
+  {
+    "name": "Kant Air Base",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 42.85,
+    "lng": 74.84
+  },
+  {
+    "name": "Khabarovsk-Bolshoy Air Base",
+    "country": "Russia",
+    "operator": "Russian VKS",
+    "branch": "air_force",
+    "lat": 48.528,
+    "lng": 135.188
+  },
+  {
+    "name": "Khmeimim (Latakia)",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 35.4,
+    "lng": 35.95
+  },
+  {
+    "name": "Sovgavan Naval Base",
+    "country": "Russia",
+    "operator": "Russian Pacific Fleet",
+    "branch": "navy",
+    "lat": 48.966,
+    "lng": 140.291
+  },
+  {
+    "name": "Tartus Naval Base",
+    "country": "Russia",
+    "operator": "",
+    "branch": "navy",
+    "lat": 34.89,
+    "lng": 35.87
+  },
+  {
+    "name": "Ukrainka Air Base (Tu-95 bomber)",
+    "country": "Russia",
+    "operator": "Russian VKS Long-Range Aviation",
+    "branch": "air_force",
+    "lat": 51.17,
+    "lng": 128.4
+  },
+  {
+    "name": "Vilyuchinsk SSBN Base",
+    "country": "Russia",
+    "operator": "Russian Pacific Fleet (SSBN)",
+    "branch": "navy",
+    "lat": 52.929,
+    "lng": 158.405
+  },
+  {
+    "name": "Vladivostok (Pacific Fleet HQ)",
+    "country": "Russia",
+    "operator": "Russian Pacific Fleet",
+    "branch": "navy",
+    "lat": 43.114,
+    "lng": 131.885
+  },
+  {
+    "name": "Vozdvizhenka Air Base",
+    "country": "Russia",
+    "operator": "Russian VKS",
+    "branch": "air_force",
+    "lat": 43.907,
+    "lng": 131.984
+  },
+  {
+    "name": "Yelizovo Air Base (Kamchatka)",
+    "country": "Russia",
+    "operator": "Russian VKS / Pacific Fleet Aviation",
+    "branch": "air_force",
+    "lat": 53.167,
+    "lng": 158.454
+  },
+  {
+    "name": "Al Dhafra AB",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 24.25,
+    "lng": 54.55
+  },
+  {
+    "name": "Al Udeid AB",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 25.12,
+    "lng": 51.32
+  },
+  {
+    "name": "Camp Arifjan",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 29.2,
+    "lng": 47.96
+  },
+  {
+    "name": "Dhahran AB",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 26.27,
+    "lng": 50.15
+  },
+  {
+    "name": "Khamis Mushait",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 18.3,
+    "lng": 42.8
+  },
+  {
+    "name": "Prince Sultan AB",
+    "country": "Saudi Arabia",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 23.87,
+    "lng": 47.59
+  },
+  {
+    "name": "Camp Humphreys",
+    "country": "South Korea",
+    "operator": "US Army / USFK HQ",
+    "branch": "army",
+    "lat": 36.963,
+    "lng": 127.031
+  },
+  {
+    "name": "Kunsan Air Base",
+    "country": "South Korea",
+    "operator": "USAF 8th Fighter Wing",
+    "branch": "air_force",
+    "lat": 35.904,
+    "lng": 126.616
+  },
+  {
+    "name": "Osan Air Base",
+    "country": "South Korea",
+    "operator": "USAF 51st Fighter Wing",
+    "branch": "air_force",
+    "lat": 37.09,
+    "lng": 127.03
+  },
+  {
+    "name": "Ching Chuan Kang Air Base",
+    "country": "Taiwan",
+    "operator": "ROCAF 3rd TFW",
+    "branch": "air_force",
+    "lat": 24.264,
+    "lng": 120.621
+  },
+  {
+    "name": "Hsinchu Air Force Base",
+    "country": "Taiwan",
+    "operator": "ROCAF 2nd TFW",
+    "branch": "air_force",
+    "lat": 24.818,
+    "lng": 120.939
+  },
+  {
+    "name": "Hualien Air Force Base (Jiashan)",
+    "country": "Taiwan",
+    "operator": "ROCAF 5th TFW",
+    "branch": "air_force",
+    "lat": 24.024,
+    "lng": 121.617
+  },
+  {
+    "name": "Pingtung Air Base (South)",
+    "country": "Taiwan",
+    "operator": "ROCAF 6th Mixed Wing",
+    "branch": "air_force",
+    "lat": 22.673,
+    "lng": 120.462
+  },
+  {
+    "name": "Suao Naval Base",
+    "country": "Taiwan",
+    "operator": "ROCN 168th Fleet",
+    "branch": "navy",
+    "lat": 24.594,
+    "lng": 121.862
+  },
+  {
+    "name": "Tainan Air Force Base",
+    "country": "Taiwan",
+    "operator": "ROCAF 1st TFW",
+    "branch": "air_force",
+    "lat": 22.951,
+    "lng": 120.206
+  },
+  {
+    "name": "Taitung Zhihang Air Base",
+    "country": "Taiwan",
+    "operator": "ROCAF 7th FTG",
+    "branch": "air_force",
+    "lat": 22.793,
+    "lng": 121.182
+  },
+  {
+    "name": "Zuoying Naval Base",
+    "country": "Taiwan",
+    "operator": "ROCN Fleet Command",
+    "branch": "navy",
+    "lat": 22.702,
+    "lng": 120.268
+  },
+  {
+    "name": "Aviano AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 46.03,
+    "lng": 12.6
+  },
+  {
+    "name": "Incirlik AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 37.0,
+    "lng": 35.43
+  },
+  {
+    "name": "Kadena AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 26.36,
+    "lng": 127.77
+  },
+  {
+    "name": "Misawa AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 40.7,
+    "lng": 141.37
+  },
+  {
+    "name": "Naval logisticsBandar KhomeiniKhuzestan",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 30.43,
+    "lng": 49.07
+  },
+  {
+    "name": "Osan AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 37.08,
+    "lng": 127.03
+  },
+  {
+    "name": "RAF Lakenheath",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 52.41,
+    "lng": 0.56
+  },
+  {
+    "name": "Ramstein AB",
+    "country": "United States",
+    "operator": "",
+    "branch": "air_force",
+    "lat": 49.44,
+    "lng": 7.6
+  },
+  {
+    "name": "Belbek Air Base",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 44.69,
+    "lng": 33.58
+  },
+  {
+    "name": "Borisovsky Khotilovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 57.78,
+    "lng": 34.07
+  },
+  {
+    "name": "Bratsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 56.37,
+    "lng": 101.7
+  },
+  {
+    "name": "Budyonnovsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 44.78,
+    "lng": 44.19
+  },
+  {
+    "name": "Burevestnik",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 45.27,
+    "lng": 147.63
+  },
+  {
+    "name": "Chelyabinsk / Shagol",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 55.43,
+    "lng": 61.56
+  },
+  {
+    "name": "Dolinsk-Sokol",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 47.05,
+    "lng": 142.78
+  },
+  {
+    "name": "Dyagilevo / Ryazan",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 54.64,
+    "lng": 39.51
+  },
+  {
+    "name": "Dzhankoi",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 45.73,
+    "lng": 34.39
+  },
+  {
+    "name": "Dzyomgi / Komsomolsk-on-Amur",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 50.61,
+    "lng": 136.93
+  },
+  {
+    "name": "Elizovo / Petropavlovsk-Kamchatsky",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 53.18,
+    "lng": 158.45
+  },
+  {
+    "name": "Engels-2",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 51.43,
+    "lng": 46.17
+  },
+  {
+    "name": "Gromovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 60.75,
+    "lng": 30.18
+  },
+  {
+    "name": "Gvardeyskoye",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 45.12,
+    "lng": 33.97
+  },
+  {
+    "name": "Khrabrovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "navy",
+    "lat": 54.89,
+    "lng": 20.59
+  },
+  {
+    "name": "Khurba / Komsomolsk-on-Amur",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 50.57,
+    "lng": 137.03
+  },
+  {
+    "name": "Koltsovo / Yekaterinburg",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 56.74,
+    "lng": 60.8
+  },
+  {
+    "name": "Korenovsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 45.46,
+    "lng": 39.45
+  },
+  {
+    "name": "Krymsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 44.97,
+    "lng": 37.99
+  },
+  {
+    "name": "Kursk Vostochny",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 51.75,
+    "lng": 36.29
+  },
+  {
+    "name": "Levashovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 60.1,
+    "lng": 30.2
+  },
+  {
+    "name": "Marinovka",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 48.76,
+    "lng": 43.69
+  },
+  {
+    "name": "Millerovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 48.97,
+    "lng": 40.4
+  },
+  {
+    "name": "Monchegorsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 67.98,
+    "lng": 32.75
+  },
+  {
+    "name": "Morozovsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 48.3,
+    "lng": 41.84
+  },
+  {
+    "name": "Olenya / Olenegorsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 68.15,
+    "lng": 33.46
+  },
+  {
+    "name": "Ostrov",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 57.34,
+    "lng": 28.35
+  },
+  {
+    "name": "Perm / Bolshoye Savino",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 57.92,
+    "lng": 56.02
+  },
+  {
+    "name": "Petrozavodsk / Besovets",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 61.88,
+    "lng": 34.16
+  },
+  {
+    "name": "Primorsko-Akhtarsk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 46.06,
+    "lng": 38.17
+  },
+  {
+    "name": "Pskov",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 57.78,
+    "lng": 28.39
+  },
+  {
+    "name": "Pushkin-3",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 59.73,
+    "lng": 30.4
+  },
+  {
+    "name": "Saky",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 45.11,
+    "lng": 33.6
+  },
+  {
+    "name": "Seshcha",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 53.43,
+    "lng": 33.84
+  },
+  {
+    "name": "Severomorsk-1",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "navy",
+    "lat": 69.03,
+    "lng": 33.43
+  },
+  {
+    "name": "Severomorsk-3",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "navy",
+    "lat": 68.97,
+    "lng": 33.21
+  },
+  {
+    "name": "Shatalovo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 54.34,
+    "lng": 33.03
+  },
+  {
+    "name": "Shaykovka",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 54.23,
+    "lng": 34.34
+  },
+  {
+    "name": "Soltsy-2",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 57.89,
+    "lng": 30.19
+  },
+  {
+    "name": "Tambov / Vostochny",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 52.76,
+    "lng": 41.5
+  },
+  {
+    "name": "Temp (Kotelny Island)",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 75.98,
+    "lng": 137.93
+  },
+  {
+    "name": "Tiksi",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 71.7,
+    "lng": 128.9
+  },
+  {
+    "name": "Voronezh Malshevo",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 51.81,
+    "lng": 39.18
+  },
+  {
+    "name": "Yeysk",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "navy",
+    "lat": 46.68,
+    "lng": 38.23
+  },
+  {
+    "name": "Zernograd",
+    "country": "Russia",
+    "operator": "VKS",
+    "branch": "air_force",
+    "lat": 46.82,
+    "lng": 40.31
+  },
+  {
+    "name": "Fort Johnson (Polk)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.05,
+    "lng": -93.21
+  },
+  {
+    "name": "Fort Cavazos (Hood)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.13,
+    "lng": -97.78
+  },
+  {
+    "name": "Fort Liberty (Bragg)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 35.14,
+    "lng": -79.01
+  },
+  {
+    "name": "Fort Wainwright",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 64.83,
+    "lng": -147.65
+  },
+  {
+    "name": "Fort Bliss",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.85,
+    "lng": -106.42
+  },
+  {
+    "name": "Fort Campbell",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 36.66,
+    "lng": -87.47
+  },
+  {
+    "name": "Fort Carson",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 38.74,
+    "lng": -104.79
+  },
+  {
+    "name": "Fort Drum",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 44.05,
+    "lng": -75.77
+  },
+  {
+    "name": "Fort Eisenhower (Gordon)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 33.42,
+    "lng": -82.17
+  },
+  {
+    "name": "Fort Gregg-Adams (Lee)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 37.24,
+    "lng": -77.34
+  },
+  {
+    "name": "Fort Hamilton",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 40.6,
+    "lng": -74.03
+  },
+  {
+    "name": "Fort Huachuca",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.55,
+    "lng": -110.34
+  },
+  {
+    "name": "Fort Knox",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 37.89,
+    "lng": -85.96
+  },
+  {
+    "name": "Fort Leavenworth",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 39.36,
+    "lng": -94.92
+  },
+  {
+    "name": "Fort Leonard Wood",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 37.72,
+    "lng": -92.14
+  },
+  {
+    "name": "Fort McCoy",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 44.03,
+    "lng": -90.69
+  },
+  {
+    "name": "Fort Meade",
+    "country": "United States",
+    "operator": "US Army / NSA",
+    "branch": "army",
+    "lat": 39.1,
+    "lng": -76.74
+  },
+  {
+    "name": "Fort Moore (Benning)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 32.36,
+    "lng": -84.99
+  },
+  {
+    "name": "Fort Novosel (Rucker)",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.33,
+    "lng": -85.72
+  },
+  {
+    "name": "Fort Riley",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 39.06,
+    "lng": -96.8
+  },
+  {
+    "name": "Fort Sill",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 34.65,
+    "lng": -98.41
+  },
+  {
+    "name": "Fort Stewart",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 31.87,
+    "lng": -81.61
+  },
+  {
+    "name": "Redstone Arsenal",
+    "country": "United States",
+    "operator": "US Army / NASA",
+    "branch": "army",
+    "lat": 34.68,
+    "lng": -86.65
+  },
+  {
+    "name": "White Sands Missile Range",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 32.38,
+    "lng": -106.48
+  },
+  {
+    "name": "Yuma Proving Ground",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 32.85,
+    "lng": -114.4
+  },
+  {
+    "name": "Dugway Proving Ground",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 40.17,
+    "lng": -112.92
+  },
+  {
+    "name": "Aberdeen Proving Ground",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 39.46,
+    "lng": -76.13
+  },
+  {
+    "name": "West Point Military Academy",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 41.39,
+    "lng": -73.96
+  },
+  {
+    "name": "Joint Base Myer-Henderson Hall",
+    "country": "United States",
+    "operator": "US Army / Joint",
+    "branch": "army",
+    "lat": 38.88,
+    "lng": -77.07
+  },
+  {
+    "name": "Joint Base Anacostia-Bolling",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 38.84,
+    "lng": -77.01
+  },
+  {
+    "name": "Joint Base Andrews",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 38.81,
+    "lng": -76.87
+  },
+  {
+    "name": "Joint Base Lewis-McChord",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "army",
+    "lat": 47.11,
+    "lng": -122.58
+  },
+  {
+    "name": "Joint Base San Antonio",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 29.5,
+    "lng": -98.43
+  },
+  {
+    "name": "Joint Base McGuire-Dix-Lakehurst",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 40.02,
+    "lng": -74.59
+  },
+  {
+    "name": "Joint Base Charleston",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 32.9,
+    "lng": -80.04
+  },
+  {
+    "name": "Joint Base Langley-Eustis",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 37.08,
+    "lng": -76.36
+  },
+  {
+    "name": "Joint Base Pearl Harbor-Hickam",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "navy",
+    "lat": 21.34,
+    "lng": -157.97
+  },
+  {
+    "name": "Joint Base Elmendorf-Richardson",
+    "country": "United States",
+    "operator": "Joint",
+    "branch": "air_force",
+    "lat": 61.25,
+    "lng": -149.8
+  },
+  {
+    "name": "Beale AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 39.13,
+    "lng": -121.43
+  },
+  {
+    "name": "Davis-Monthan AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 32.17,
+    "lng": -110.88
+  },
+  {
+    "name": "Dyess AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 32.42,
+    "lng": -99.85
+  },
+  {
+    "name": "Edwards AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 34.9,
+    "lng": -117.88
+  },
+  {
+    "name": "Eglin AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 30.48,
+    "lng": -86.53
+  },
+  {
+    "name": "Ellsworth AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 44.15,
+    "lng": -103.1
+  },
+  {
+    "name": "F.E. Warren AFB",
+    "country": "United States",
+    "operator": "USAF (ICBM)",
+    "branch": "air_force",
+    "lat": 41.14,
+    "lng": -104.87
+  },
+  {
+    "name": "Fairchild AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 47.61,
+    "lng": -117.66
+  },
+  {
+    "name": "Holloman AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 32.85,
+    "lng": -106.1
+  },
+  {
+    "name": "Kirtland AFB",
+    "country": "United States",
+    "operator": "USAF / NNSA",
+    "branch": "air_force",
+    "lat": 35.05,
+    "lng": -106.61
+  },
+  {
+    "name": "Laughlin AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 29.36,
+    "lng": -100.78
+  },
+  {
+    "name": "Little Rock AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 34.92,
+    "lng": -92.15
+  },
+  {
+    "name": "Luke AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 33.53,
+    "lng": -112.38
+  },
+  {
+    "name": "Malmstrom AFB",
+    "country": "United States",
+    "operator": "USAF (ICBM)",
+    "branch": "air_force",
+    "lat": 47.51,
+    "lng": -111.18
+  },
+  {
+    "name": "Maxwell AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 32.38,
+    "lng": -86.37
+  },
+  {
+    "name": "McConnell AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 37.62,
+    "lng": -97.27
+  },
+  {
+    "name": "Minot AFB",
+    "country": "United States",
+    "operator": "USAF (ICBM/Bomber)",
+    "branch": "air_force",
+    "lat": 48.41,
+    "lng": -101.36
+  },
+  {
+    "name": "Moody AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 30.97,
+    "lng": -83.19
+  },
+  {
+    "name": "Mountain Home AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 43.04,
+    "lng": -115.87
+  },
+  {
+    "name": "Nellis AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 36.24,
+    "lng": -115.03
+  },
+  {
+    "name": "Offutt AFB",
+    "country": "United States",
+    "operator": "USAF / STRATCOM HQ",
+    "branch": "air_force",
+    "lat": 41.12,
+    "lng": -95.91
+  },
+  {
+    "name": "Patrick SFB",
+    "country": "United States",
+    "operator": "USSF",
+    "branch": "air_force",
+    "lat": 28.23,
+    "lng": -80.61
+  },
+  {
+    "name": "Peterson SFB",
+    "country": "United States",
+    "operator": "USSF / NORAD",
+    "branch": "air_force",
+    "lat": 38.82,
+    "lng": -104.7
+  },
+  {
+    "name": "Robins AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 32.64,
+    "lng": -83.59
+  },
+  {
+    "name": "Schriever SFB",
+    "country": "United States",
+    "operator": "USSF",
+    "branch": "air_force",
+    "lat": 38.8,
+    "lng": -104.53
+  },
+  {
+    "name": "Scott AFB",
+    "country": "United States",
+    "operator": "USAF / TRANSCOM HQ",
+    "branch": "air_force",
+    "lat": 38.54,
+    "lng": -89.85
+  },
+  {
+    "name": "Shaw AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 33.97,
+    "lng": -80.47
+  },
+  {
+    "name": "Sheppard AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 33.98,
+    "lng": -98.83
+  },
+  {
+    "name": "Tinker AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 35.41,
+    "lng": -97.39
+  },
+  {
+    "name": "Travis AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 38.26,
+    "lng": -121.93
+  },
+  {
+    "name": "Tyndall AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 30.07,
+    "lng": -85.61
+  },
+  {
+    "name": "Vandenberg SFB",
+    "country": "United States",
+    "operator": "USSF / USAF",
+    "branch": "air_force",
+    "lat": 34.74,
+    "lng": -120.57
+  },
+  {
+    "name": "Whiteman AFB",
+    "country": "United States",
+    "operator": "USAF (B-2 Stealth)",
+    "branch": "air_force",
+    "lat": 38.72,
+    "lng": -93.55
+  },
+  {
+    "name": "Wright-Patterson AFB",
+    "country": "United States",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 39.83,
+    "lng": -84.05
+  },
+  {
+    "name": "Naval Air Station Pensacola",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 30.35,
+    "lng": -87.32
+  },
+  {
+    "name": "Naval Air Station Jacksonville",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 30.23,
+    "lng": -81.68
+  },
+  {
+    "name": "Naval Air Station Patuxent River",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 38.28,
+    "lng": -76.41
+  },
+  {
+    "name": "Naval Air Station Oceana",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 36.82,
+    "lng": -76.03
+  },
+  {
+    "name": "Naval Air Station Whidbey Island",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 48.35,
+    "lng": -122.66
+  },
+  {
+    "name": "Naval Air Station Fallon",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 39.42,
+    "lng": -118.7
+  },
+  {
+    "name": "Naval Air Station Corpus Christi",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 27.69,
+    "lng": -97.29
+  },
+  {
+    "name": "Naval Air Station Key West",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 24.58,
+    "lng": -81.69
+  },
+  {
+    "name": "Naval Station Norfolk",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 36.94,
+    "lng": -76.33
+  },
+  {
+    "name": "Naval Station Mayport",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 30.39,
+    "lng": -81.42
+  },
+  {
+    "name": "Naval Station Newport",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 41.51,
+    "lng": -71.34
+  },
+  {
+    "name": "Naval Station Great Lakes",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 42.3,
+    "lng": -87.84
+  },
+  {
+    "name": "Naval Base San Diego",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 32.7,
+    "lng": -117.21
+  },
+  {
+    "name": "Naval Base Kitsap",
+    "country": "United States",
+    "operator": "USN (SSBN)",
+    "branch": "navy",
+    "lat": 47.56,
+    "lng": -122.62
+  },
+  {
+    "name": "Naval Base Ventura County",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 34.12,
+    "lng": -119.11
+  },
+  {
+    "name": "Naval Base Point Loma",
+    "country": "United States",
+    "operator": "USN (submarine)",
+    "branch": "navy",
+    "lat": 32.67,
+    "lng": -117.24
+  },
+  {
+    "name": "Naval Base Coronado",
+    "country": "United States",
+    "operator": "USN / SEAL HQ",
+    "branch": "navy",
+    "lat": 32.68,
+    "lng": -117.16
+  },
+  {
+    "name": "Naval Air Weapons Station China Lake",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.69,
+    "lng": -117.69
+  },
+  {
+    "name": "Marine Corps Base Camp Pendleton",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 33.37,
+    "lng": -117.43
+  },
+  {
+    "name": "Marine Corps Base Camp Lejeune",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 34.67,
+    "lng": -77.34
+  },
+  {
+    "name": "Marine Corps Air Station Cherry Point",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 34.9,
+    "lng": -76.88
+  },
+  {
+    "name": "Marine Corps Air Station Miramar",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 32.87,
+    "lng": -117.14
+  },
+  {
+    "name": "Marine Corps Air Station New River",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 34.71,
+    "lng": -77.44
+  },
+  {
+    "name": "Marine Corps Air Station Beaufort",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 32.47,
+    "lng": -80.72
+  },
+  {
+    "name": "Marine Corps Air Station Yuma",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 32.66,
+    "lng": -114.61
+  },
+  {
+    "name": "Marine Corps Base Camp Blaz",
+    "country": "United States",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 13.52,
+    "lng": 144.86
+  },
+  {
+    "name": "Fort Buchanan",
+    "country": "United States",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 18.42,
+    "lng": -66.11
+  },
+  {
+    "name": "Naval Station Guantanamo Bay",
+    "country": "United States",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 19.9,
+    "lng": -75.15
+  },
+  {
+    "name": "Wake Island Airfield",
+    "country": "United States",
+    "operator": "USAF / Joint",
+    "branch": "air_force",
+    "lat": 19.29,
+    "lng": 166.64
+  },
+  {
+    "name": "Yokota AB",
+    "country": "Japan",
+    "operator": "USAF (USFJ HQ)",
+    "branch": "air_force",
+    "lat": 35.75,
+    "lng": 139.35
+  },
+  {
+    "name": "Naval Air Facility Atsugi",
+    "country": "Japan",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.45,
+    "lng": 139.45
+  },
+  {
+    "name": "Marine Corps Air Station Iwakuni",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 34.14,
+    "lng": 132.24
+  },
+  {
+    "name": "USMC Camp Courtney",
+    "country": "Japan",
+    "operator": "USMC (III MEF HQ)",
+    "branch": "marines",
+    "lat": 26.4,
+    "lng": 127.85
+  },
+  {
+    "name": "USMC Camp Foster",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.27,
+    "lng": 127.77
+  },
+  {
+    "name": "USMC Camp Hansen",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.52,
+    "lng": 127.97
+  },
+  {
+    "name": "USMC Camp Schwab",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.53,
+    "lng": 128.01
+  },
+  {
+    "name": "USMC Camp Kinser",
+    "country": "Japan",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 26.22,
+    "lng": 127.71
+  },
+  {
+    "name": "Torii Station",
+    "country": "Japan",
+    "operator": "US Army / Special Forces",
+    "branch": "army",
+    "lat": 26.36,
+    "lng": 127.72
+  },
+  {
+    "name": "Camp Walker",
+    "country": "South Korea",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 35.84,
+    "lng": 128.57
+  },
+  {
+    "name": "Camp Carroll",
+    "country": "South Korea",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 36.0,
+    "lng": 128.41
+  },
+  {
+    "name": "Camp Henry",
+    "country": "South Korea",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 35.87,
+    "lng": 128.6
+  },
+  {
+    "name": "Camp Red Cloud",
+    "country": "South Korea",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 37.74,
+    "lng": 127.05
+  },
+  {
+    "name": "Commander Fleet Activities Chinhae",
+    "country": "South Korea",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.14,
+    "lng": 128.65
+  },
+  {
+    "name": "Busan Naval Base",
+    "country": "South Korea",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.07,
+    "lng": 129.06
+  },
+  {
+    "name": "USMC Camp Mujuk",
+    "country": "South Korea",
+    "operator": "USMC",
+    "branch": "marines",
+    "lat": 36.02,
+    "lng": 129.38
+  },
+  {
+    "name": "Spangdahlem AB",
+    "country": "Germany",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 49.97,
+    "lng": 6.69
+  },
+  {
+    "name": "Grafenw\u00f6hr Training Area",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 49.7,
+    "lng": 11.9
+  },
+  {
+    "name": "Hohenfels Training Area",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 49.22,
+    "lng": 11.83
+  },
+  {
+    "name": "USAG Ansbach",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 49.3,
+    "lng": 10.57
+  },
+  {
+    "name": "USAG Wiesbaden",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 50.06,
+    "lng": 8.33
+  },
+  {
+    "name": "USAG Stuttgart",
+    "country": "Germany",
+    "operator": "US Army (EUCOM HQ)",
+    "branch": "army",
+    "lat": 48.7,
+    "lng": 9.13
+  },
+  {
+    "name": "USAG Bavaria (Vilseck)",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 49.63,
+    "lng": 11.8
+  },
+  {
+    "name": "Landstuhl Regional Medical Center",
+    "country": "Germany",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 49.4,
+    "lng": 7.58
+  },
+  {
+    "name": "Naval Air Station Sigonella",
+    "country": "Italy",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 37.4,
+    "lng": 14.92
+  },
+  {
+    "name": "Naval Support Activity Naples",
+    "country": "Italy",
+    "operator": "USN (NAVEUR HQ)",
+    "branch": "navy",
+    "lat": 40.81,
+    "lng": 14.19
+  },
+  {
+    "name": "Camp Ederle / Caserma Del Din",
+    "country": "Italy",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 45.55,
+    "lng": 11.53
+  },
+  {
+    "name": "RAF Mildenhall",
+    "country": "United Kingdom",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 52.36,
+    "lng": 0.48
+  },
+  {
+    "name": "RAF Croughton",
+    "country": "United Kingdom",
+    "operator": "USAF / NSA",
+    "branch": "air_force",
+    "lat": 52.07,
+    "lng": -1.19
+  },
+  {
+    "name": "RAF Fairford",
+    "country": "United Kingdom",
+    "operator": "USAF (B-2/B-52 staging)",
+    "branch": "air_force",
+    "lat": 51.68,
+    "lng": -1.79
+  },
+  {
+    "name": "RAF Menwith Hill",
+    "country": "United Kingdom",
+    "operator": "USAF / NSA (SIGINT)",
+    "branch": "air_force",
+    "lat": 54.0,
+    "lng": -1.69
+  },
+  {
+    "name": "Naval Air Station Souda Bay",
+    "country": "Greece",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 35.53,
+    "lng": 24.07
+  },
+  {
+    "name": "Naval Station Rota",
+    "country": "Spain",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 36.64,
+    "lng": -6.35
+  },
+  {
+    "name": "Mor\u00f3n AB",
+    "country": "Spain",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 37.17,
+    "lng": -5.61
+  },
+  {
+    "name": "NSF Deveselu",
+    "country": "Romania",
+    "operator": "USN (Aegis Ashore)",
+    "branch": "navy",
+    "lat": 44.1,
+    "lng": 24.18
+  },
+  {
+    "name": "C\u00e2mpia Turzii AB",
+    "country": "Romania",
+    "operator": "USAF (rotational)",
+    "branch": "air_force",
+    "lat": 46.78,
+    "lng": 23.89
+  },
+  {
+    "name": "Mihail Kog\u0103lniceanu AB",
+    "country": "Romania",
+    "operator": "USAF / NATO",
+    "branch": "air_force",
+    "lat": 44.36,
+    "lng": 28.49
+  },
+  {
+    "name": "NSF Redzikowo",
+    "country": "Poland",
+    "operator": "USN (Aegis Ashore)",
+    "branch": "navy",
+    "lat": 54.45,
+    "lng": 17.49
+  },
+  {
+    "name": "Camp Kosciuszko",
+    "country": "Poland",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 52.43,
+    "lng": 16.9
+  },
+  {
+    "name": "Powidz AB",
+    "country": "Poland",
+    "operator": "USAF (rotational)",
+    "branch": "air_force",
+    "lat": 52.38,
+    "lng": 17.87
+  },
+  {
+    "name": "Camp Bondsteel",
+    "country": "Kosovo",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 42.36,
+    "lng": 21.35
+  },
+  {
+    "name": "NSA Bahrain (5th Fleet HQ)",
+    "country": "Bahrain",
+    "operator": "USN",
+    "branch": "navy",
+    "lat": 26.21,
+    "lng": 50.6
+  },
+  {
+    "name": "Camp Buehring",
+    "country": "Kuwait",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 29.69,
+    "lng": 47.5
+  },
+  {
+    "name": "Ali Al Salem AB",
+    "country": "Kuwait",
+    "operator": "USAF",
+    "branch": "air_force",
+    "lat": 29.46,
+    "lng": 47.52
+  },
+  {
+    "name": "Al-Tanf Garrison",
+    "country": "Syria",
+    "operator": "US Army / SOF",
+    "branch": "army",
+    "lat": 33.5,
+    "lng": 38.65
+  },
+  {
+    "name": "Erbil Air Base",
+    "country": "Iraq",
+    "operator": "USAF / Combined JTF",
+    "branch": "air_force",
+    "lat": 36.24,
+    "lng": 43.96
+  },
+  {
+    "name": "Baghdad Diplomatic Support Center",
+    "country": "Iraq",
+    "operator": "US Army",
+    "branch": "army",
+    "lat": 33.43,
+    "lng": 44.4
+  },
+  {
+    "name": "Camp Lemonnier",
+    "country": "Djibouti",
+    "operator": "USN / AFRICOM",
+    "branch": "navy",
+    "lat": 11.55,
+    "lng": 43.16
+  },
+  {
+    "name": "Camp Simba",
+    "country": "Kenya",
+    "operator": "USAF / SOF",
+    "branch": "air_force",
+    "lat": -2.53,
+    "lng": 41.01
+  },
+  {
+    "name": "Robertson Barracks",
+    "country": "Australia",
+    "operator": "US Army / USMC rotational",
+    "branch": "army",
+    "lat": -12.42,
+    "lng": 130.87
+  },
+  {
+    "name": "NCS Harold E. Holt",
+    "country": "Australia",
+    "operator": "USN (submarine comms)",
+    "branch": "navy",
+    "lat": -21.81,
+    "lng": 114.17
+  },
+  {
+    "name": "Kojarena Satellite Station",
+    "country": "Australia",
+    "operator": "USAF / ASD (SIGINT)",
+    "branch": "air_force",
+    "lat": -28.36,
+    "lng": 114.7
+  },
+  {
+    "name": "Antonio Bautista AB",
+    "country": "Philippines",
+    "operator": "USAF / rotational",
+    "branch": "air_force",
+    "lat": 9.74,
+    "lng": 118.73
+  },
+  {
+    "name": "Fort Magsaysay",
+    "country": "Philippines",
+    "operator": "US Army / rotational",
+    "branch": "army",
+    "lat": 15.47,
+    "lng": 121.1
+  },
+  {
+    "name": "Thule AB / Pituffik SB",
+    "country": "Greenland",
+    "operator": "USSF / USAF",
+    "branch": "air_force",
+    "lat": 76.53,
+    "lng": -68.74
+  }
+]

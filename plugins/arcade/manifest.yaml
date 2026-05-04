@@ -79,8 +79,12 @@ stream_client:
     fps: 20
   # Same Minecraft client volume as the minecraft plugin uses — populated
   # from plugin-data/minecraft/ via the minecraft-client-init compose service.
+  # SPECTRE source comes in via its own volume, populated from
+  # plugin-data/arcade/spectre/ via arcade-spectre-init. Only SPECTRE's Python
+  # deps (venv at /opt/spectre-venv) are baked into the image.
   volumes:
     - { name: psychic_train_minecraft_client, mount: /opt/mc-data, readonly: true }
+    - { name: psychic_train_arcade_spectre,   mount: /app/spectre, readonly: true }
   env:
     MC_HOST: "{env_host}"
     MC_PORT: "{game_internal}"

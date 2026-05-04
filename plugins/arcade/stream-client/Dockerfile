@@ -84,13 +84,17 @@ COPY arcade/stream-client/openbox/rc.xml /root/.config/openbox/rc.xml
 # Static assets the Hub Chromium opens.
 COPY arcade/stream-client/hub.html /app/hub.html
 
-# SPECTRE — Flask-based Global Intelligence dashboard. Vendored under
-# arcade/stream-client/spectre/ via seed-spectre.sh; see that directory's
-# README. We isolate its deps in a venv to avoid PEP-668 system-pip lock.
-COPY arcade/stream-client/spectre /app/spectre
-RUN python3 -m venv /app/spectre/.venv \
-    && /app/spectre/.venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /app/spectre/.venv/bin/pip install --no-cache-dir -r /app/spectre/requirements.txt
+# SPECTRE — Flask-based Global Intelligence dashboard. Source is NOT baked
+# into the image (it lives in a sibling repo we can't access from CI); it
+# arrives at runtime via the psychic_train_arcade_spectre volume mounted at
+# /app/spectre. Only the deps live in the image, in a venv at /opt/spectre-venv,
+# pip-installed from the committed spectre-requirements.txt snapshot. Refresh
+# that file from upstream's requirements.txt whenever SPECTRE deps change.
+COPY arcade/stream-client/spectre-requirements.txt /tmp/spectre-requirements.txt
+RUN python3 -m venv /opt/spectre-venv \
+    && /opt/spectre-venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/spectre-venv/bin/pip install --no-cache-dir -r /tmp/spectre-requirements.txt \
+    && rm -f /tmp/spectre-requirements.txt
 
 COPY arcade/stream-client/launch.sh /app/launch.sh
 RUN chmod +x /app/launch.sh

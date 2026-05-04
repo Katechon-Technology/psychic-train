@@ -108,6 +108,46 @@ jobs:
           push: true
           tags: ghcr.io/katechon-technology/psychic-train-${{ matrix.name }}:latest
 
+  # Second-stage builds for images that FROM another image in the matrix above.
+  # arcade-stream-client COPYs assets out of playwright-browser-stream-client,
+  # so it has to wait for the matrix to finish and pull both base images.
+  build-dependent:
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: arcade-stream-client
+            context: plugins
+            dockerfile: arcade/stream-client/Dockerfile
+            depends_on: playwright-browser-stream-client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull base images this build FROMs
+        run: |
+          docker pull ghcr.io/katechon-technology/psychic-train-stream-client-base:latest
+          docker tag  ghcr.io/katechon-technology/psychic-train-stream-client-base:latest psychic-train/stream-client-base:latest
+          docker pull ghcr.io/katechon-technology/psychic-train-${{ matrix.depends_on }}:latest
+          docker tag  ghcr.io/katechon-technology/psychic-train-${{ matrix.depends_on }}:latest psychic-train/${{ matrix.depends_on }}:latest
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
+          push: true
+          tags: ghcr.io/katechon-technology/psychic-train-${{ matrix.name }}:latest
+
   deploy-game:
     needs: [detect-changes, build]
     if: needs.detect-changes.outputs.game == 'true'
@@ -150,7 +190,7 @@ jobs:
           ENDSSH
 
   deploy-stream:
-    needs: [detect-changes, build]
+    needs: [detect-changes, build, build-dependent]
     if: needs.detect-changes.outputs.stream == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -178,7 +218,8 @@ jobs:
             # On-demand stream-client images spawned by stream-agent
             for name in stream-client-base vtuber-overlay \
                         factorio-stream-client minecraft-stream-client \
-                        playwright-browser-stream-client; do
+                        playwright-browser-stream-client \
+                        arcade-stream-client; do
               docker pull $REGISTRY/psychic-train-${name}:latest
               docker tag  $REGISTRY/psychic-train-${name}:latest psychic-train/${name}:latest
             done

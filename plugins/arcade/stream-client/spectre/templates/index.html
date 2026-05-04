@@ -1,0 +1,4859 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPECTRE // GLOBAL INTELLIGENCE DASHBOARD</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mgrs@1.0.0/dist/mgrs.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+  <style>
+    /* ── Broadcast Player Panel ─────────────────────────────────────────── */
+    #broadcast-panel {
+      position: fixed;
+      bottom: 40px;
+      right: 360px;
+      width: 300px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-hi);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 229, 255, 0.05);
+      z-index: 5000;
+      display: none;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+
+    #broadcast-panel.visible {
+      display: block;
+    }
+
+    #broadcast-header {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: move;
+      user-select: none;
+    }
+
+    #broadcast-header .bh-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      flex: 1;
+    }
+
+    #broadcast-close {
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    #broadcast-close:hover {
+      color: var(--crit);
+    }
+
+    .bcast-stream {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bcast-stream:hover {
+      background: var(--bg-hover);
+    }
+
+    .bcast-stream.playing {
+      background: rgba(0, 229, 255, 0.06);
+      border-left: 3px solid var(--cyan);
+    }
+
+    .bcast-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .bcast-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .bcast-desc {
+      font-size: 10px;
+      color: var(--text-mute);
+      font-family: var(--font-data);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bcast-org {
+      font-size: 10px;
+      font-family: var(--font-data);
+      color: var(--cyan);
+      background: var(--cyan-dim);
+      padding: 1px 5px;
+      flex-shrink: 0;
+    }
+
+    .bcast-play-btn {
+      font-size: 16px;
+      color: var(--cyan);
+      flex-shrink: 0;
+      transition: 0.2s;
+    }
+
+    .bcast-stream.playing .bcast-play-btn {
+      color: var(--crit);
+      animation: pulseDot 1.2s ease-in-out infinite;
+    }
+
+    #broadcast-now-playing {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border-top: 1px solid var(--border-hi);
+      font-size: 10px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #broadcast-eq {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+      height: 14px;
+    }
+
+    .eq-bar {
+      width: 3px;
+      background: var(--cyan);
+      border-radius: 1px;
+      animation: eqAnim 0.8s ease-in-out infinite alternate;
+    }
+
+    .eq-bar:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .eq-bar:nth-child(3) {
+      animation-delay: 0.30s;
+    }
+
+    .eq-bar:nth-child(4) {
+      animation-delay: 0.05s;
+    }
+
+    .eq-bar.paused {
+      animation: none;
+      height: 3px;
+    }
+
+    @keyframes eqAnim {
+      from {
+        height: 3px;
+      }
+
+      to {
+        height: 14px;
+      }
+    }
+
+    /* ── Live Feeds / Camera Modal ──────────────────────────────────────── */
+    #cam-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
+      background: rgba(3, 5, 10, 0.92);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+    }
+
+    #cam-modal.visible {
+      display: flex;
+    }
+
+    #cam-modal-header {
+      padding: 12px 20px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    #cam-modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+    }
+
+    .cam-region-btn {
+      padding: 3px 10px;
+      border: 1px solid var(--border-hi);
+      background: transparent;
+      color: var(--text-mute);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .cam-region-btn.active,
+    .cam-region-btn:hover {
+      color: var(--cyan);
+      border-color: var(--cyan);
+      background: var(--cyan-dim);
+    }
+
+    #cam-modal-close {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      cursor: pointer;
+      padding: 4px 10px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    #cam-modal-close:hover {
+      border-color: var(--crit);
+      color: var(--crit);
+    }
+
+    /* ── Map Right-Click Satellite Menu + Modal ─────────────────────────── */
+    #map-ctx-menu {
+      position: fixed;
+      z-index: 10010;
+      display: none;
+      min-width: 220px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+      clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+    }
+
+    #map-ctx-menu.visible { display: block; }
+
+    #map-ctx-sat {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: var(--text-main);
+      text-align: left;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      padding: 10px 14px;
+      transition: all 0.15s;
+    }
+
+    #map-ctx-sat:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+      padding-left: 18px;
+    }
+
+    #sat-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 8100;
+      background: rgba(3, 5, 10, 0.92);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+    }
+
+    #sat-modal.visible { display: flex; }
+
+    #sat-modal-inner {
+      width: min(1120px, 96vw);
+      height: min(760px, 90vh);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+
+    #sat-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-hi);
+      background: rgba(0, 0, 0, 0.25);
+      flex-shrink: 0;
+    }
+
+    #sat-modal-title {
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      white-space: nowrap;
+    }
+
+    #sat-modal-meta {
+      color: var(--text-mute);
+      font-family: var(--font-data);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #sat-date-select {
+      background: #0f1826;
+      color: #e7f4ff;
+      border: 1px solid var(--border-hi);
+      font-family: var(--font-data);
+      font-size: 11px;
+      padding: 4px 8px;
+      letter-spacing: 0.04em;
+      min-width: 140px;
+    }
+
+    #sat-date-select option {
+      background: #0f1826;
+      color: #e7f4ff;
+    }
+
+    #sat-date-select:focus {
+      outline: none;
+      border-color: #00e5ff;
+      box-shadow: 0 0 0 1px var(--cyan-dim);
+    }
+
+    #sat-date-select:hover {
+      border-color: #00e5ff;
+    }
+
+    #sat-modal-close {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      cursor: pointer;
+      padding: 4px 10px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    #sat-modal-close:hover {
+      border-color: var(--crit);
+      color: var(--crit);
+    }
+
+    #sat-map {
+      flex: 1;
+      min-height: 260px;
+      background: #0b1018;
+    }
+
+    #sat-map .leaflet-control-layers {
+      background: rgba(10, 16, 26, 0.92);
+      border: 1px solid var(--border-hi);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+    }
+
+    #sat-map .leaflet-control-layers-expanded {
+      color: var(--text-main);
+      padding: 8px 10px;
+      min-width: 200px;
+    }
+
+    #sat-map .leaflet-control-layers label {
+      color: var(--text-main);
+      margin: 3px 0;
+    }
+
+    #cam-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      overflow-y: auto;
+      align-content: start;
+    }
+
+    .cam-tile {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+      transition: border-color 0.2s;
+    }
+
+    .cam-tile:hover {
+      border-color: var(--cyan);
+    }
+
+    .cam-tile-header {
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border-bottom: 1px solid var(--border-dim);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cam-tile-city {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 0.15em;
+    }
+
+    .cam-tile-name {
+      font-size: 11px;
+      color: var(--text-main);
+      flex: 1;
+      font-family: var(--font-data);
+    }
+
+    .cam-live-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--crit);
+      border: 1px solid var(--crit);
+      padding: 1px 5px;
+      animation: pulseDot 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulseDot {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    .cam-tile iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      background: #000;
+      display: block;
+    }
+
+    .cam-tile-desc {
+      padding: 4px 10px;
+      font-size: 10px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* ── Blackout layer sidebar panel ───────────────────────────────────── */
+    .blackout-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .blackout-item:hover {
+      background: var(--bg-hover);
+      padding-left: 18px;
+    }
+
+    .blackout-flag {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .blackout-country {
+      font-size: 12px;
+      font-weight: 700;
+      flex: 1;
+      color: var(--text-bright);
+    }
+
+    .blackout-level {
+      font-size: 10px;
+      font-family: var(--font-data);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+
+    .blackout-signal {
+      font-size: 9px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Toolbar action buttons ─────────────────────────────────────────── */
+    #toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .toolbar-action-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--border-hi);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-mute);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+    }
+
+    .toolbar-action-btn:hover,
+    .toolbar-action-btn.active {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border-color: var(--amber);
+      box-shadow: inset 0 0 10px rgba(255, 176, 0, 0.1);
+    }
+
+    .toolbar-action-btn.broadcast-active {
+      background: rgba(0, 229, 255, 0.08);
+      color: var(--cyan);
+      border-color: var(--cyan);
+    }
+
+    /* ── Enhanced OSINT filters ─────────────────────────────────────────── */
+    .filter-btn.tg {
+      color: #24a1de;
+      border-color: #24a1de;
+    }
+
+    .filter-btn.tg.active {
+      background: rgba(36, 161, 222, 0.15);
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      /* Tactical Slate Palette */
+      --bg-base: #05080f;
+      --bg-panel: rgba(10, 15, 25, 0.85);
+      --bg-hover: rgba(30, 45, 70, 0.5);
+      --border-dim: #1a2536;
+      --border-hi: #2c405a;
+
+      /* Text */
+      --text-main: #a8b8d0;
+      --text-mute: #5b6b85;
+      --text-bright: #ffffff;
+
+      /* Accents */
+      --cyan: #00e5ff;
+      --cyan-dim: rgba(0, 229, 255, 0.15);
+      --amber: #ffb000;
+      --amber-dim: rgba(255, 176, 0, 0.15);
+
+      /* Threat Colors */
+      --crit: #ff1744;
+      --high: #ff9100;
+      --med: #ffea00;
+      --low: #00e676;
+
+      /* Typography */
+      --font-ui: 'Rajdhani', sans-serif;
+      --font-data: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Tactical Background Grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+
+
+    /* ── Classification banner ─── */
+    #classif-top {
+      background: repeating-linear-gradient(45deg, var(--crit), var(--crit) 10px, #cc0022 10px, #cc0022 20px);
+      color: #fff;
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      letter-spacing: 0.4em;
+      padding: 3px 0;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      flex-shrink: 0;
+      z-index: 1001;
+      box-shadow: 0 2px 10px rgba(255, 23, 68, 0.2);
+    }
+
+    /* ── Header ─── */
+    #header {
+      background: var(--bg-panel);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-hi);
+      flex-shrink: 0;
+      z-index: 1000;
+      position: relative;
+    }
+
+    #header-top {
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    #header-bottom {
+      padding: 4px 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 11px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    #logo {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #logo-title {
+      font-size: 26px;
+      color: var(--text-bright);
+      letter-spacing: 0.15em;
+      font-weight: 700;
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    #logo-title span {
+      color: var(--cyan);
+    }
+
+    #logo-sub {
+      font-size: 10px;
+      color: var(--text-mute);
+      letter-spacing: 0.25em;
+      font-family: var(--font-data);
+    }
+
+    .hdr-divider {
+      width: 1px;
+      height: 35px;
+      background: var(--border-dim);
+      flex-shrink: 0;
+    }
+
+    .hdr-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hdr-stat-label {
+      font-size: 10px;
+      color: var(--text-mute);
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+
+    .hdr-stat-value {
+      font-size: 18px;
+      color: var(--text-bright);
+      font-family: var(--font-data);
+      font-weight: 700;
+    }
+
+    #threat-level-badge {
+      font-size: 12px;
+      font-family: var(--font-data);
+      padding: 4px 14px;
+      letter-spacing: 0.15em;
+      font-weight: 700;
+      background: rgba(0, 0, 0, 0.5);
+      border-left: 3px solid var(--low);
+      color: var(--low);
+    }
+
+    #threat-level-badge.elevated {
+      color: var(--med);
+      border-color: var(--med);
+    }
+
+    #threat-level-badge.high {
+      color: var(--high);
+      border-color: var(--high);
+    }
+
+    #threat-level-badge.critical {
+      color: var(--crit);
+      border-color: var(--crit);
+      animation: critpulse 1.5s ease-in-out infinite;
+      background: rgba(255, 23, 68, 0.1);
+    }
+
+    @keyframes critpulse {
+
+      0%,
+      100% {
+        box-shadow: inset 0 0 0 rgba(255, 23, 68, 0);
+      }
+
+      50% {
+        box-shadow: inset 20px 0 20px -20px rgba(255, 23, 68, 0.8);
+      }
+    }
+
+    #clock-block {
+      margin-left: auto;
+      text-align: right;
+    }
+
+    #clock-zulu {
+      font-size: 18px;
+      color: var(--cyan);
+      font-family: var(--font-data);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 8px var(--cyan-dim);
+    }
+
+    #clock-label {
+      font-size: 10px;
+      color: var(--text-mute);
+      letter-spacing: 0.2em;
+    }
+
+    #refresh-status {
+      font-size: 11px;
+      font-family: var(--font-data);
+      font-weight: 700;
+    }
+
+    #refresh-status.ok {
+      color: var(--low);
+    }
+
+    #refresh-status.err {
+      color: var(--crit);
+    }
+
+    /* ── Layer bar ─── */
+    #layer-bar {
+      background: var(--bg-panel);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-dim);
+      padding: 6px 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 500;
+      position: relative;
+    }
+
+    .layer-label {
+      font-size: 11px;
+      color: var(--text-mute);
+      letter-spacing: 0.1em;
+      margin-right: 10px;
+      font-weight: 600;
+    }
+
+    .layer-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--border-hi);
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text-mute);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+    }
+
+    .layer-btn.active {
+      background: var(--cyan-dim);
+      color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.2);
+    }
+
+    .layer-btn:hover:not(.active) {
+      color: var(--text-bright);
+      border-color: var(--text-mute);
+    }
+
+    /* ── Main ─── */
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    #sidebar-left,
+    #panel-right {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 20;
+    }
+
+    #sidebar-left {
+      width: 280px;
+      border-right: 1px solid var(--border-hi);
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+    }
+
+    #panel-right {
+      width: 340px;
+      border-left: 1px solid var(--border-hi);
+      box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+    }
+
+    #map-container {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    /* Map HUD spacing (keeps Leaflet controls aligned with custom overlays) */
+    #map-container {
+      --hud-edge: 12px;   /* distance from map edges */
+      --hud-gap:  8px;    /* vertical gap between stacked HUD elements */
+      --hud-search-h: 44px; /* fallback height; JS will set actual */
+      --hud-coord-h:  22px; /* fallback height; JS will set actual */
+    }
+
+    /* Leaflet scale control (distance reference) */
+    .leaflet-bottom.leaflet-left .leaflet-control-scale {
+      /* Sit above the map search bar; align left edges */
+      margin-left: var(--hud-edge) !important;
+      margin-bottom: calc(var(--hud-edge) + var(--hud-search-h) + var(--hud-gap)) !important;
+    }
+    .leaflet-control-scale-line {
+      background: rgba(3, 5, 10, 0.75);
+      border: 1px solid var(--border-hi);
+      color: var(--cyan);
+      font-family: var(--font-data);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+      padding: 2px 6px;
+      border-radius: 0;
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.06);
+      backdrop-filter: blur(6px);
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+    }
+
+    /* ── Panels ─── */
+    .panel {
+      border-bottom: 1px solid var(--border-dim);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.4);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      border-left: 3px solid var(--cyan);
+    }
+
+    .panel-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ph-icon {
+      color: var(--cyan);
+      font-size: 10px;
+    }
+
+    .panel-header .count-badge {
+      margin-left: auto;
+      background: var(--border-dim);
+      font-family: var(--font-data);
+      padding: 2px 6px;
+      font-size: 10px;
+      color: var(--text-bright);
+    }
+
+    .panel-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .panel-body.collapsed {
+      display: none;
+    }
+
+    .collapse-arrow {
+      color: var(--text-mute);
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    /* ── Threat grid ─── */
+    #threat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border-dim);
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .threat-cell {
+      background: var(--bg-panel);
+      padding: 12px;
+      position: relative;
+    }
+
+    .threat-cell .label {
+      font-size: 10px;
+      color: var(--text-mute);
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .threat-cell .value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: var(--font-data);
+      margin-top: 4px;
+      line-height: 1;
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    /* ── Risk list ─── */
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .risk-item:hover {
+      background: var(--bg-hover);
+      padding-left: 18px;
+      border-left: 2px solid var(--amber);
+    }
+
+    .risk-bar-bg {
+      flex: 1;
+      height: 4px;
+      background: var(--border-dim);
+      overflow: hidden;
+      border-radius: 2px;
+    }
+
+    .risk-bar {
+      height: 100%;
+      box-shadow: 0 0 5px currentColor;
+    }
+
+    .risk-name {
+      width: 115px;
+      font-size: 12px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-main);
+    }
+
+    .risk-score {
+      width: 30px;
+      text-align: right;
+      font-size: 12px;
+      font-family: var(--font-data);
+      font-weight: 700;
+    }
+
+    /* ── News ─── */
+    .news-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 2px solid transparent;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .news-item:hover {
+      background: var(--bg-hover);
+      border-left-color: var(--cyan);
+    }
+
+    .news-item.sev-critical {
+      border-left-color: var(--crit);
+      background: linear-gradient(90deg, rgba(255, 23, 68, 0.05), transparent);
+    }
+
+    .news-item.sev-high {
+      border-left-color: var(--high);
+    }
+
+    .news-item.sev-medium {
+      border-left-color: var(--med);
+    }
+
+    .news-item .news-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-bright);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .news-item .news-meta {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--text-mute);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .sev-pip {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 5px currentColor;
+    }
+
+    .cat-tag {
+      padding: 2px 6px;
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      background: var(--border-dim);
+      color: var(--text-main);
+      border-radius: 2px;
+    }
+
+    #news-filters {
+      display: flex;
+      gap: 4px;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      flex-shrink: 0;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border-dim);
+    }
+
+    .filter-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+      border-radius: 2px;
+    }
+
+    .filter-btn.active {
+      color: var(--text-bright);
+      border-color: var(--cyan);
+      background: var(--cyan-dim);
+    }
+
+    .filter-btn:hover:not(.active) {
+      color: var(--text-main);
+      border-color: var(--text-mute);
+    }
+
+    /* ── Quake list ─── */
+    .quake-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quake-item:hover {
+      background: var(--bg-hover);
+      border-left: 2px solid var(--amber);
+    }
+
+    .quake-mag {
+      font-family: var(--font-data);
+      font-size: 16px;
+      font-weight: 700;
+      min-width: 45px;
+      text-align: right;
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    .quake-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quake-place {
+      font-size: 12px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-bright);
+    }
+
+    .quake-time {
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--text-mute);
+      margin-top: 2px;
+    }
+
+    /* ── Status bar ─── */
+    #status-bar {
+      background: #03050a;
+      border-top: 1px solid var(--border-hi);
+      padding: 4px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      overflow-x: auto;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .status-item {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.ok {
+      background: var(--low);
+      box-shadow: 0 0 6px var(--low);
+    }
+
+    .status-dot.warn {
+      background: var(--med);
+      box-shadow: 0 0 6px var(--med);
+    }
+
+    .status-dot.err {
+      background: var(--crit);
+      box-shadow: 0 0 6px var(--crit);
+    }
+
+    /* ── Map styling - SATELLITE TWEAKS ─── */
+    /* Dim the satellite slightly so the glowing UI markers still pop, and bump contrast */
+    .leaflet-tile-pane {
+      filter: brightness(0.7) contrast(1.2) saturate(0.9);
+    }
+
+    .leaflet-container {
+      background: #000;
+      font-family: var(--font-ui);
+    }
+
+    /* Tactical Popups */
+    .leaflet-popup-content-wrapper {
+      background: rgba(10, 15, 25, 0.95) !important;
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--cyan) !important;
+      border-radius: 0 !important;
+      color: var(--text-main) !important;
+      font-family: var(--font-data) !important;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.1) !important;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    }
+
+    .leaflet-popup-tip {
+      background: var(--cyan) !important;
+    }
+
+    .leaflet-popup-content {
+      margin: 12px 16px !important;
+    }
+
+    .popup-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+      margin-bottom: 4px;
+      font-family: var(--font-ui);
+      font-weight: 700;
+    }
+
+    .popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+      line-height: 1.3;
+      font-family: var(--font-ui);
+    }
+
+    .popup-meta {
+      font-size: 11px;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .popup-link {
+      color: var(--cyan);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .popup-link:hover {
+      text-shadow: 0 0 8px var(--cyan);
+    }
+
+    .popup-classified {
+      font-size: 10px;
+      color: var(--crit);
+      letter-spacing: 0.1em;
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--border-hi);
+      text-align: center;
+    }
+
+    /* Aircraft icon */
+    .aircraft-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .aircraft-icon svg {
+      overflow: visible;
+      filter: drop-shadow(0 0 4px currentColor);
+    }
+
+    /* Loading */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 20px;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 2px solid var(--border-dim);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      color: var(--text-bright);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .loading-sub {
+      color: var(--cyan);
+      font-size: 12px;
+      font-family: var(--font-data);
+      letter-spacing: 0.1em;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-hi);
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--cyan);
+    }
+
+    @media (max-width: 900px) {
+      #sidebar-left {
+        display: none;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      #panel-right {
+        width: 280px;
+      }
+    }
+
+    /* Responsive layout: tablets/phones */
+    @media (max-width: 1200px) {
+      #sidebar-left { width: 260px; }
+      #panel-right  { width: 300px; }
+
+      /* Fixed-position UI should not assume desktop panel offset */
+      #toast-container { right: 12px; }
+      #broadcast-panel { right: 12px; }
+    }
+
+    @media (max-width: 900px) {
+      /* Stack layout for narrow screens (map stays primary) */
+      #main { flex-direction: column; }
+
+      /* Header: prevent spillover on small screens */
+      #header-top {
+        padding: 10px 12px;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      #logo {
+        flex: 1 1 220px;
+        min-width: 0;
+      }
+
+      #logo-title { font-size: 22px; }
+
+      #threat-level-badge {
+        flex: 1 1 240px;
+        min-width: 0;
+      }
+
+      .hdr-divider { display: none; }
+
+      .hdr-stat {
+        flex: 0 0 auto;
+      }
+
+      #header-top > div[style*="margin-left:auto"] {
+        margin-left: 0 !important;
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px !important;
+      }
+
+      #clock-block { text-align: left; }
+
+      #header-bottom {
+        padding: 6px 12px;
+        gap: 14px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        white-space: nowrap;
+      }
+
+      #header-bottom::-webkit-scrollbar { height: 4px; }
+
+      /* Map overlay tiles: allow horizontal scrolling instead of overflow */
+      #layer-bar {
+        padding: 6px 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+      }
+
+      #layer-bar::-webkit-scrollbar { height: 4px; }
+
+      #layer-bar > .layer-label,
+      #layer-bar > .layer-btn {
+        flex: 0 0 auto;
+      }
+
+      /* Prevent any floating panels/menus from rendering offscreen */
+      #ctx-menu {
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+      }
+
+      #kb-modal-inner {
+        max-width: calc(100vw - 24px);
+      }
+
+      /* Keep map usable; right panel becomes a bottom sheet */
+      #map-container { min-height: 48vh; }
+      #panel-right {
+        width: 100%;
+        height: 40vh;
+        border-left: none;
+        border-top: 1px solid var(--border-hi);
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Make quick-nav wrap/scroll instead of overflowing */
+      #cocom-nav {
+        top: 100px;
+        max-width: calc(100vw - 24px);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+
+      /* Map search: keep it docked and compact */
+      #map-search {
+        top: 52px;
+        left: 12px;
+        right: 12px;
+        max-width: calc(100vw - 24px);
+      }
+      #map-search input { width: 100%; }
+
+      #coord-readout {
+        bottom: 12px;
+        right: 12px;
+        left: auto;
+      }
+
+      /* Avoid offscreen fixed elements on mobile */
+      #toast-container {
+        top: max(64px, env(safe-area-inset-top));
+        right: max(12px, env(safe-area-inset-right));
+        left: auto;
+      }
+
+      #broadcast-panel {
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(64px, env(safe-area-inset-bottom));
+        width: min(300px, calc(100vw - 24px));
+      }
+
+      /* Camera grid: allow smaller tiles */
+      #cam-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      /* Tighten typography + spacing on very small screens */
+      .panel-header { font-size: 12px; padding: 8px 12px; }
+      .cocom-btn { padding: 3px 8px; }
+      #kb-modal-inner { width: 96vw; }
+    }
+
+    /* ── UX ENHANCEMENTS ─────────────────────────────────────────────────── */
+
+    /* Coordinate readout */
+    #coord-readout {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 999;
+      font-family: var(--font-data);
+      font-size: 10px;
+      color: var(--cyan);
+      background: rgba(3, 5, 10, 0.75);
+      border: 1px solid var(--border-hi);
+      padding: 3px 8px;
+      min-height: var(--hud-coord-h);
+      letter-spacing: 0.08em;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+    }
+
+    /* COCOM quick-nav */
+    #cocom-nav {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: flex;
+      gap: 4px;
+      pointer-events: all;
+    }
+
+    /* Map search (coords or place name) */
+    #map-search {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      min-height: var(--hud-search-h);
+      background: rgba(3, 5, 10, 0.78);
+      border: 1px solid var(--border-hi);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 18px rgba(0, 229, 255, 0.05);
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+      max-width: min(520px, calc(100vw - 24px));
+      pointer-events: all;
+    }
+
+    #map-search input {
+      width: min(360px, calc(100vw - 160px));
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-hi);
+      color: var(--text-bright);
+      font-family: var(--font-data);
+      font-size: 11px;
+      padding: 4px 8px;
+      outline: none;
+      letter-spacing: 0.04em;
+    }
+
+    #map-search input:focus { border-color: var(--cyan); }
+    #map-search input::placeholder { color: var(--text-mute); }
+
+    #map-search button {
+      padding: 4px 10px;
+      border: 1px solid var(--border-hi);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text-mute);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.18s;
+      clip-path: polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);
+      white-space: nowrap;
+    }
+
+    #map-search button:hover { color: var(--text-bright); border-color: var(--cyan); }
+
+    /* Leaflet zoom control: lift above bottom-right MGRS readout */
+    .leaflet-bottom.leaflet-right .leaflet-control-zoom {
+      margin-bottom: calc(var(--hud-edge) + var(--hud-coord-h) + var(--hud-gap));
+      margin-right: var(--hud-edge);
+    }
+
+    .cocom-btn {
+      padding: 3px 10px;
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      background: rgba(3, 5, 10, 0.85);
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      cursor: pointer;
+      transition: all 0.18s;
+      backdrop-filter: blur(6px);
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+      white-space: nowrap;
+    }
+
+    .cocom-btn:hover {
+      color: var(--amber);
+      border-color: var(--amber);
+      background: var(--amber-dim);
+    }
+
+    /* Fullscreen map mode */
+    body.map-fullscreen #sidebar-left,
+    body.map-fullscreen #panel-right {
+      display: none;
+    }
+
+    body.map-fullscreen #cocom-nav {
+      left: 50%;
+    }
+
+    #btn-fullscreen {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* Keyboard shortcuts modal */
+    #kb-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9500;
+      background: rgba(3, 5, 10, 0.92);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #kb-modal.visible { display: flex; }
+
+    #kb-modal-inner {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      width: 560px;
+      max-width: 96vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.08);
+    }
+
+    #kb-modal-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #kb-modal-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+      flex: 1;
+    }
+
+    #kb-modal-close {
+      background: none;
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      cursor: pointer;
+      padding: 3px 10px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      transition: 0.2s;
+    }
+
+    #kb-modal-close:hover { color: var(--crit); border-color: var(--crit); }
+
+    .kb-section {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .kb-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--text-mute);
+      margin-bottom: 10px;
+    }
+
+    .kb-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 12px;
+    }
+
+    .kb-key {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-hi);
+      border-bottom-width: 2px;
+      font-family: var(--font-data);
+      font-size: 11px;
+      color: var(--cyan);
+      padding: 2px 8px;
+      min-width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+      clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px);
+    }
+
+    .kb-desc { color: var(--text-main); flex: 1; }
+
+    /* Driver.js / welcome tour (theme) */
+    .driver-overlay { z-index: 10040 !important; }
+    .driver-popover.spectre-driver-popover {
+      background: var(--bg-panel) !important;
+      border: 1px solid var(--border-hi) !important;
+      color: var(--text-main) !important;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85) !important;
+      max-width: min(480px, 94vw) !important;
+    }
+    .driver-popover.spectre-driver-popover .driver-popover-title {
+      font-family: var(--font-ui);
+      font-size: 15px !important;
+      letter-spacing: 0.12em !important;
+      color: var(--cyan) !important;
+    }
+    .driver-popover.spectre-driver-popover .driver-popover-description {
+      font-family: var(--font-ui);
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      color: var(--text-main) !important;
+    }
+    .driver-popover.spectre-driver-popover .driver-popover-progress-text {
+      font-family: var(--font-data) !important;
+      font-size: 11px !important;
+      color: var(--text-mute) !important;
+    }
+    .driver-popover.spectre-driver-popover button {
+      font-family: var(--font-ui) !important;
+      font-size: 12px !important;
+      letter-spacing: 0.08em !important;
+    }
+
+    /* Full reference (Help) modal */
+    #help-ref-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9600;
+      background: rgba(3, 5, 10, 0.94);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #help-ref-modal.visible { display: flex; }
+    #help-ref-inner {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      width: 720px;
+      max-width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.06);
+    }
+    #help-ref-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-hi);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    #help-ref-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--cyan);
+      flex: 1;
+    }
+    #help-ref-close {
+      background: none;
+      border: 1px solid var(--border-hi);
+      color: var(--text-mute);
+      cursor: pointer;
+      padding: 3px 10px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    #help-ref-close:hover { color: var(--crit); border-color: var(--crit); }
+    #help-ref-body {
+      overflow-y: auto;
+      padding: 16px 22px 24px;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.52;
+      color: var(--text-main);
+    }
+    #help-ref-body h3 {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: var(--cyan);
+      margin: 18px 0 8px;
+      font-weight: 700;
+    }
+    #help-ref-body h3:first-child { margin-top: 0; }
+    #help-ref-body ul { margin: 0 0 0 18px; padding: 0; }
+    #help-ref-body li { margin: 4px 0; }
+    #help-ref-body .help-note {
+      font-family: var(--font-data);
+      font-size: 11px;
+      color: var(--text-mute);
+      margin-top: 6px;
+    }
+    #help-ref-actions {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border-hi);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+    #help-ref-actions button {
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      cursor: pointer;
+      padding: 8px 14px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+    #help-ref-actions button.secondary {
+      border-color: var(--border-hi);
+      color: var(--text-mute);
+    }
+    #help-ref-actions button:hover { filter: brightness(1.15); }
+
+    /* News search bar */
+    #news-search-wrap {
+      padding: 6px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid var(--border-dim);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #news-search {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-hi);
+      color: var(--text-bright);
+      font-family: var(--font-data);
+      font-size: 11px;
+      padding: 4px 8px;
+      outline: none;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s;
+    }
+
+    #news-search:focus { border-color: var(--cyan); }
+    #news-search::placeholder { color: var(--text-mute); }
+
+    #news-search-clear {
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 0 2px;
+      display: none;
+    }
+
+    #news-search-clear.visible { display: block; }
+    #news-search-clear:hover { color: var(--crit); }
+
+    /* Toast notifications */
+    #toast-container {
+      position: fixed;
+      top: 80px;
+      right: 360px;
+      z-index: 9000;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 8px 16px;
+      font-family: var(--font-data);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      backdrop-filter: blur(8px);
+      border: 1px solid;
+      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+      animation: toastIn 0.25s ease, toastOut 0.3s ease 2.7s forwards;
+      pointer-events: none;
+    }
+
+    .toast.info {
+      background: rgba(0, 229, 255, 0.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .toast.critical {
+      background: rgba(255, 23, 68, 0.15);
+      border-color: var(--crit);
+      color: var(--crit);
+    }
+
+    .toast.ok {
+      background: rgba(0, 230, 118, 0.12);
+      border-color: var(--low);
+      color: var(--low);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(-6px); }
+    }
+
+    /* NEW badge on news items */
+    .new-badge {
+      display: inline-block;
+      background: var(--low);
+      color: #000;
+      font-family: var(--font-data);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 1px 4px;
+      margin-right: 4px;
+      vertical-align: middle;
+      animation: pulseDot 1.8s ease-in-out infinite;
+    }
+
+    /* Sidebar resize handles */
+    .resize-handle {
+      width: 4px;
+      cursor: col-resize;
+      background: transparent;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 30;
+      transition: background 0.2s;
+    }
+
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--cyan);
+    }
+
+    /* Context menu */
+    #ctx-menu {
+      position: fixed;
+      z-index: 9999;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-hi);
+      backdrop-filter: blur(10px);
+      min-width: 180px;
+      display: none;
+      clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    }
+
+    #ctx-menu.visible { display: block; }
+
+    .ctx-item {
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: all 0.15s;
+      letter-spacing: 0.05em;
+    }
+
+    .ctx-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-bright);
+      padding-left: 18px;
+    }
+
+    .ctx-item .ctx-icon {
+      font-size: 12px;
+      color: var(--cyan);
+      width: 16px;
+      text-align: center;
+    }
+
+    .ctx-sep {
+      height: 1px;
+      background: var(--border-dim);
+      margin: 2px 0;
+    }
+
+    /* Highlight shortcut hint in layer bar */
+    .layer-btn[data-hotkey]::after {
+      content: attr(data-hotkey);
+      font-size: 8px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      margin-left: 4px;
+      vertical-align: top;
+      line-height: 2.2;
+    }
+
+    /* Map zoom-to region: hover tooltip on COCOM btn */
+    .cocom-btn[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      background: rgba(0,0,0,0.85);
+      color: var(--text-main);
+      padding: 2px 6px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .cocom-btn { position: relative; }
+
+    /* ── Country filter active banner ───────────────────────────────────── */
+    #country-filter-bar {
+      display: none;
+      padding: 5px 14px;
+      background: rgba(255, 176, 0, 0.08);
+      border-bottom: 1px solid var(--amber);
+      border-left: 3px solid var(--amber);
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    #country-filter-bar.active { display: flex; }
+
+    #country-filter-label {
+      font-size: 11px;
+      font-family: var(--font-data);
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #country-filter-clear {
+      background: none;
+      border: 1px solid var(--amber);
+      color: var(--amber);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 2px 8px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #country-filter-clear:hover { background: var(--amber-dim); }
+
+    .risk-item.country-selected {
+      background: var(--amber-dim) !important;
+      border-left: 3px solid var(--amber);
+      padding-left: 11px;
+    }
+
+    /* ── Export controls ─────────────────────────────────────────────────── */
+    #export-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 14px;
+      background: rgba(0, 0, 0, 0.25);
+      border-bottom: 1px solid var(--border-dim);
+      flex-shrink: 0;
+    }
+
+    #export-label {
+      font-size: 10px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      letter-spacing: 0.1em;
+      margin-right: 2px;
+    }
+
+    .export-btn {
+      padding: 2px 9px;
+      border: 1px solid var(--border-hi);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-mute);
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      transition: all 0.18s;
+      clip-path: polygon(3px 0,100% 0,100% calc(100% - 3px),calc(100% - 3px) 100%,0 100%,0 3px);
+    }
+
+    .export-btn:hover {
+      color: var(--low);
+      border-color: var(--low);
+      background: rgba(0, 230, 118, 0.08);
+    }
+
+    #export-scope {
+      font-size: 10px;
+      font-family: var(--font-data);
+      color: var(--text-mute);
+      margin-left: auto;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="classif-top">SPECTRE OSINT DASHBOARD</div>
+
+  <div id="header">
+    <div id="header-top">
+      <div id="logo">
+        <div id="logo-title">SPEC<span>TRE</span></div>
+        <div id="logo-sub">GLOBAL INTELLIGENCE DASHBOARD</div>
+      </div>
+      <div class="hdr-divider"></div>
+      <div id="threat-level-badge">AWAITING TELEMETRY</div>
+      <div class="hdr-divider"></div>
+      <div class="hdr-stat">
+        <div class="hdr-stat-label">OSINT</div>
+        <div class="hdr-stat-value" id="hdr-news" style="color:var(--cyan)">—</div>
+      </div>
+      <div class="hdr-stat">
+        <div class="hdr-stat-label">SEISMIC</div>
+        <div class="hdr-stat-value" id="hdr-quakes" style="color:var(--amber)">—</div>
+      </div>
+      <div class="hdr-stat">
+        <div class="hdr-stat-label">EVENTS</div>
+        <div class="hdr-stat-value" id="hdr-events" style="color:var(--text-bright)">—</div>
+      </div>
+      <div class="hdr-stat">
+        <div class="hdr-stat-label">TRACKS</div>
+        <div class="hdr-stat-value" id="hdr-flights" style="color:var(--low)">—</div>
+      </div>
+      <div class="hdr-stat">
+        <div class="hdr-stat-label">NET OUTAGES</div>
+        <div class="hdr-stat-value" id="hdr-blackouts" style="color:var(--med)">—</div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:20px;">
+        <span id="refresh-status">ACQUIRING…</span>
+        <div id="clock-block">
+          <div id="clock-zulu">——:——:—— Z</div>
+          <div id="clock-label">ZULU TIME</div>
+        </div>
+      </div>
+    </div>
+    <div id="header-bottom">
+      <span style="color:var(--cyan)">SYS:</span> SPECTRE-2A
+      <span style="color:var(--cyan)">FEEDS:</span> {{ rss_feed_count }} RSS · {{ tg_feed_count }} TG-OSINT · USGS · EONET · GDELT · ADS-B · CelesTrak · IODA
+      <span style="color:var(--cyan)">MODE:</span> LIVE CONTINUOUS
+      <span style="color:var(--cyan)">REFRESH:</span> 300S
+      <span style="margin-left:auto;color:var(--crit);font-weight:700;">Monitoring The Situation</span>
+    </div>
+  </div>
+
+  <div id="layer-bar">
+    <span class="layer-label">MAP OVERLAYS</span>
+    <button class="layer-btn active" data-layer="news">OSINT Nodes</button>
+    <button class="layer-btn active" data-layer="gdelt">GDELT Corpus</button>
+    <button class="layer-btn active" data-layer="risk">Theater Instability</button>
+    <button class="layer-btn" data-layer="flights">Air Tracks</button>
+    <button class="layer-btn" data-layer="satellites">Satellites</button>
+    <button class="layer-btn" data-layer="blackouts">🌐 Net
+      Blackouts</button>
+    <button class="layer-btn" data-layer="gpsjam"
+      title="High GPS interference (>10%), previous 24 hours snapshot, not real-time">GPS Jamming · 24h</button>
+    <button class="layer-btn" data-layer="bases">⬟ Bases</button>
+    <button class="layer-btn" data-layer="nuclear"
+      title="Declared / known nuclear facilities (reference data)">☢ Nuclear</button>
+    <button class="layer-btn" data-layer="weather" id="layer-btn-weather"
+      title="RainViewer global radar (past ~2h). Max zoom 7 native.">🌧 Weather</button>
+    <button class="layer-btn" data-layer="earthquakes">Seismic</button>
+    <button class="layer-btn" data-layer="events">Nat. Events</button>
+    <div id="toolbar-actions">
+      <button class="toolbar-action-btn" id="btn-broadcast" onclick="toggleBroadcast()">📻 BROADCAST</button>
+      <button class="toolbar-action-btn" id="btn-cameras" onclick="openCamModal('ALL')">📷 LIVE FEEDS</button>
+      <button class="toolbar-action-btn" id="btn-help" onclick="spectreOpenHelpReference()" title="Platform guide">? HELP</button>
+      <button class="toolbar-action-btn" onclick="openKbModal()" title="Keyboard shortcuts">⌨ SHORTCUTS</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="sidebar-left">
+      <div class="panel">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="collapse-arrow">▼</span>
+          <span class="ph-icon">◈</span>
+          THREAT ASSESSMENT
+        </div>
+        <div class="panel-body">
+          <div id="threat-grid">
+            <div class="threat-cell">
+              <div class="label">Critical</div>
+              <div class="value" id="cnt-critical" style="color:var(--crit)">—</div>
+            </div>
+            <div class="threat-cell">
+              <div class="label">High</div>
+              <div class="value" id="cnt-high" style="color:var(--high)">—</div>
+            </div>
+            <div class="threat-cell">
+              <div class="label">Medium</div>
+              <div class="value" id="cnt-medium" style="color:var(--med)">—</div>
+            </div>
+            <div class="threat-cell">
+              <div class="label">M6+ Quakes</div>
+              <div class="value" id="cnt-quakes" style="color:var(--amber)">—</div>
+            </div>
+          </div>
+          <div style="padding:12px 14px;">
+            <div
+              style="font-size:10px;font-family:var(--font-data);letter-spacing:0.1em;color:var(--text-mute);margin-bottom:8px;">
+              TOP SIGNAL CATEGORIES</div>
+            <div id="top-categories"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;min-height:140px;overflow:hidden;">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="collapse-arrow">▼</span>
+          <span class="ph-icon">◈</span>
+          THEATER INSTABILITY
+          <span class="count-badge" id="risk-count">—</span>
+        </div>
+        <div class="panel-body" id="risk-list"></div>
+      </div>
+      <div class="panel" style="flex-shrink:0;max-height:200px;">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="collapse-arrow">▼</span>
+          <span class="ph-icon" style="color:var(--med)">◈</span>
+          <span style="color:var(--med)">NET BLACKOUTS</span>
+          <span class="count-badge" id="blackout-count">—</span>
+        </div>
+        <div class="panel-body" id="blackout-list">
+          <div style="padding:10px 14px;font-size:10px;color:var(--text-mute);font-family:var(--font-data)">
+            LOADING IODA TELEMETRY…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="resize-handle" id="resize-left"></div>
+
+    <div id="map-container">
+      <div id="map-search" title="Search: 'lat, lon' • MGRS • place name (Enter)">
+        <span style="font-family:var(--font-data);font-size:11px;color:var(--text-mute);">⌖</span>
+        <input id="map-search-input" type="text" placeholder="COORDS / MGRS / LOCATION…" autocomplete="off" spellcheck="false">
+        <button id="map-search-go" type="button">GO</button>
+      </div>
+      <div id="cocom-nav">
+        <button class="cocom-btn" onclick="cocFly(20,10,2)" title="Global Overview">🌐 GLOBAL</button>
+        <button class="cocom-btn" onclick="cocFly(45,10,4)" title="European Command">EUCOM</button>
+        <button class="cocom-btn" onclick="cocFly(25,45,4)" title="Central Command">CENTCOM</button>
+        <button class="cocom-btn" onclick="cocFly(5,115,4)" title="Indo-Pacific Command">INDOPACOM</button>
+        <button class="cocom-btn" onclick="cocFly(5,20,4)" title="Africa Command">AFRICOM</button>
+        <button class="cocom-btn" onclick="cocFly(38,-97,4)" title="Northern Command">NORTHCOM</button>
+        <button class="cocom-btn" onclick="cocFly(-15,-60,4)" title="Southern Command">SOUTHCOM</button>
+      </div>
+      <div id="coord-readout">LAT — LON —</div>
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">INITIALIZING SPECTRE ENGINE</div>
+        <div class="loading-sub">ESTABLISHING SECURE CONNECTION TO SATELLITE TELEMETRY...</div>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div class="resize-handle" id="resize-right"></div>
+
+    <div id="panel-right">
+      <div class="panel" style="max-height:250px;">
+        <div class="panel-header" onclick="togglePanel(this)">
+          <span class="collapse-arrow">▼</span>
+          <span class="ph-icon">◈</span>
+          SEISMIC LOG
+          <span class="count-badge" id="quake-count">—</span>
+        </div>
+        <div class="panel-body" id="quake-list"></div>
+      </div>
+      <div class="panel" style="flex:1;min-height:0;">
+        <div class="panel-header">
+          <span class="ph-icon">◈</span>
+          LIVE OSINT FEED
+          <span class="count-badge" id="news-count">—</span>
+        </div>
+        <div id="country-filter-bar">
+          <span id="country-filter-label">◈ ALL COUNTRIES</span>
+          <button id="country-filter-clear" onclick="clearCountryFilter()">✕ CLEAR</button>
+        </div>
+        <div id="news-search-wrap">
+          <span style="font-family:var(--font-data);font-size:11px;color:var(--text-mute);">🔍</span>
+          <input id="news-search" type="text" placeholder="SEARCH FEED…" oninput="onNewsSearch(this.value)" autocomplete="off" spellcheck="false">
+          <button id="news-search-clear" onclick="clearNewsSearch()">✕</button>
+        </div>
+        <div id="news-filters">
+          <button class="filter-btn active" data-sev="all">ALL</button>
+          <button class="filter-btn" data-sev="critical"
+            style="color:var(--crit);border-color:var(--crit)">CRITICAL</button>
+          <button class="filter-btn" data-sev="high" style="color:var(--high);border-color:var(--high)">HIGH</button>
+          <button class="filter-btn" data-sev="medium" style="color:var(--med);border-color:var(--med)">MEDIUM</button>
+          <button class="filter-btn" data-sev="conflict">KINETIC</button>
+          <button class="filter-btn" data-sev="cyber">CYBER</button>
+          <button class="filter-btn" data-sev="nuclear">NUCLEAR</button>
+          <button class="filter-btn" data-sev="maritime">MARITIME</button>
+          <button class="filter-btn" data-sev="health">HEALTH</button>
+          <button class="filter-btn tg" data-sev="telegram">📡 TG-OSINT</button>
+        </div>
+        <div id="export-bar">
+          <span id="export-label">EXPORT:</span>
+          <button class="export-btn" onclick="exportFeed('csv')">↓ CSV</button>
+          <button class="export-btn" onclick="exportFeed('json')">↓ JSON</button>
+          <span id="export-scope">FULL FEED</span>
+        </div>
+        <div class="panel-body" id="news-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-bar">
+    <div class="status-item">
+      <div class="status-dot" id="dot-news"></div>OSINT
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-quakes"></div>USGS
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-events"></div>EONET
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-flights"></div>ADS-B
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-satellites"></div>Space
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-gdelt"></div>GDELT-CSV
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-blackouts"></div>IODA
+    </div>
+    <div class="status-item">
+      <div class="status-dot" id="dot-tg"></div>TG-OSINT
+    </div>
+    <span style="margin-left:auto;">
+      LAST SYNC: <span id="last-update" style="color:var(--cyan);font-weight:700;">—</span>
+    </span>
+  </div>
+
+  <!-- ── BROADCAST RADIO PLAYER ───────────────────────────────────────────── -->
+  <div id="broadcast-panel">
+    <div id="broadcast-header">
+      <span style="color:var(--cyan);font-size:14px;">📻</span>
+      <span class="bh-title">BROADCAST INTERCEPT</span>
+      <button id="broadcast-close" onclick="toggleBroadcast()">✕</button>
+    </div>
+    <div id="broadcast-list">
+      <div style="padding:10px 12px;font-size:10px;color:var(--text-mute);font-family:var(--font-data)">
+        LOADING STREAMS…
+      </div>
+    </div>
+    <div id="broadcast-now-playing">
+      <div id="broadcast-eq">
+        <div class="eq-bar paused"></div>
+        <div class="eq-bar paused"></div>
+        <div class="eq-bar paused"></div>
+        <div class="eq-bar paused"></div>
+      </div>
+      <span id="broadcast-np-text" style="font-size:10px;color:var(--text-mute);">NO SIGNAL</span>
+      <span id="broadcast-vol-label" style="margin-left:auto;font-size:10px;color:var(--text-mute);">VOL</span>
+      <input id="broadcast-vol" type="range" min="0" max="1" step="0.05" value="0.7"
+        style="width:60px;accent-color:var(--cyan);cursor:pointer;" oninput="setBcastVol(this.value)">
+    </div>
+    <!-- Hidden HTML5 audio element -->
+    <audio id="bcast-audio" style="display:none" crossorigin="anonymous"></audio>
+  </div>
+
+  <!-- ── LIVE FEEDS / CAMERA MODAL ─────────────────────────────────────────── -->
+  <div id="cam-modal">
+    <div id="cam-modal-header">
+      <span style="color:var(--cyan);font-size:16px;">📷</span>
+      <span id="cam-modal-title">LIVE SURVEILLANCE FEEDS</span>
+      <button class="cam-region-btn active" onclick="filterCams('ALL',this)">ALL</button>
+      <button class="cam-region-btn" onclick="filterCams('NEWS',this)">NEWS</button>
+      <button class="cam-region-btn" onclick="filterCams('URBAN',this)">URBAN</button>
+      <button id="cam-modal-close" onclick="closeCamModal()">✕ CLOSE</button>
+    </div>
+    <div id="cam-grid">
+      <div
+        style="padding:40px;text-align:center;color:var(--text-mute);font-family:var(--font-data);font-size:12px;letter-spacing:0.1em;">
+        LOADING LIVE FEEDS…
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KEYBOARD SHORTCUTS MODAL ─────────────────────────────────────────── -->
+  <div id="kb-modal">
+    <div id="kb-modal-inner">
+      <div id="kb-modal-header">
+        <span id="kb-modal-title">⌨ KEYBOARD SHORTCUTS</span>
+        <button id="kb-modal-close" onclick="closeKbModal()">✕ CLOSE</button>
+      </div>
+      <div class="kb-section">
+        <div class="kb-section-title">NAVIGATION</div>
+        <div class="kb-row"><span class="kb-key">F</span><span class="kb-desc">Toggle fullscreen map (hide panels)</span></div>
+        <div class="kb-row"><span class="kb-key">R</span><span class="kb-desc">Force data refresh</span></div>
+        <div class="kb-row"><span class="kb-key">G</span><span class="kb-desc">Reset to global view</span></div>
+        <div class="kb-row"><span class="kb-key">?</span><span class="kb-desc">Show / hide this shortcuts panel</span></div>
+        <div class="kb-row"><span class="kb-key">ESC</span><span class="kb-desc">Close modals / clear search / clear country filter</span></div>
+      </div>
+      <div class="kb-section">
+        <div class="kb-section-title">MAP LAYERS (toggle)</div>
+        <div class="kb-row"><span class="kb-key">1</span><span class="kb-desc">OSINT Nodes</span></div>
+        <div class="kb-row"><span class="kb-key">2</span><span class="kb-desc">GDELT corpus</span></div>
+        <div class="kb-row"><span class="kb-key">3</span><span class="kb-desc">Theater instability rings</span></div>
+        <div class="kb-row"><span class="kb-key">4</span><span class="kb-desc">Air tracks (ADS-B)</span></div>
+        <div class="kb-row"><span class="kb-key">5</span><span class="kb-desc">Net blackouts</span></div>
+        <div class="kb-row"><span class="kb-key">6</span><span class="kb-desc">Military bases</span></div>
+        <div class="kb-row"><span class="kb-key">7</span><span class="kb-desc">Nuclear facilities</span></div>
+        <div class="kb-row"><span class="kb-key">8</span><span class="kb-desc">Weather radar</span></div>
+        <div class="kb-row"><span class="kb-key">9</span><span class="kb-desc">Seismic events</span></div>
+        <div class="kb-row"><span class="kb-key">0</span><span class="kb-desc">Natural events</span></div>
+      </div>
+      <div class="kb-section">
+        <div class="kb-section-title">TOOLS</div>
+        <div class="kb-row"><span class="kb-key">B</span><span class="kb-desc">Toggle broadcast intercept panel</span></div>
+        <div class="kb-row"><span class="kb-key">S</span><span class="kb-desc">Focus OSINT feed search bar</span></div>
+        <div class="kb-row"><span class="kb-key">C</span><span class="kb-desc">Copy last left-clicked article to clipboard</span></div>
+      </div>
+      <div class="kb-section">
+        <div class="kb-section-title">COCOM QUICK-FLY</div>
+        <div class="kb-row"><span class="kb-key">Alt+1</span><span class="kb-desc">EUCOM — Europe</span></div>
+        <div class="kb-row"><span class="kb-key">Alt+2</span><span class="kb-desc">CENTCOM — Middle East / SWASIA</span></div>
+        <div class="kb-row"><span class="kb-key">Alt+3</span><span class="kb-desc">INDOPACOM — Indo-Pacific</span></div>
+        <div class="kb-row"><span class="kb-key">Alt+4</span><span class="kb-desc">AFRICOM — Africa</span></div>
+        <div class="kb-row"><span class="kb-key">Alt+5</span><span class="kb-desc">NORTHCOM — North America</span></div>
+        <div class="kb-row"><span class="kb-key">Alt+6</span><span class="kb-desc">SOUTHCOM — South / Latin America</span></div>
+      </div>
+      <div class="kb-section" style="border:none;">
+        <div class="kb-section-title">NEWS ITEM LEFT-CLICK CONTEXT MENU</div>
+        <div class="kb-row"><span style="color:var(--text-main);font-size:12px;">Left-click any OSINT feed item for: open source, copy OSINT snippet, copy URL, fly to location.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FULL PLATFORM REFERENCE (Help) ───────────────────────────────────── -->
+  <div id="help-ref-modal" aria-hidden="true">
+    <div id="help-ref-inner">
+      <div id="help-ref-header">
+        <span id="help-ref-title">SPECTRE — PLATFORM REFERENCE</span>
+        <button type="button" id="help-ref-close" onclick="spectreCloseHelpReference()">✕ CLOSE</button>
+      </div>
+      <div id="help-ref-body">
+        <h3>WHAT IS SPECTRE</h3>
+        <p>Open-source global intelligence and threat monitoring dashboard. It fuses public OSINT into one map: geopolitical signals, conflict tracking, disasters, military air and satellite movement, strategic infrastructure, internet infrastructure disruptions, and GPS interference. Core data uses free/public sources only; no paid API keys are required for a full deployment.</p>
+        <h3>DATA PIPELINE &amp; RELIABILITY</h3>
+        <ul>
+          <li><strong>Real-time updates:</strong> Server-Sent Events (SSE) endpoint <code>/api/stream</code> pushes <code>data_updated</code> events; the UI reloads data without manual refresh.</li>
+          <li><strong>Fast boot:</strong> Two-phase load — <code>/api/fast</code> then <code>/api/all</code> — so the map becomes usable quickly while heavier domains finish.</li>
+          <li><strong>Background refresh:</strong> Scheduled polling per domain (RSS, flights, satellites, quakes, blackouts, GPS jam, EONET, GDELT, Telegram).</li>
+          <li><strong>Cache + resilience:</strong> Stale-while-revalidate behavior, disk cache (<code>.spectre_cache.json</code>) for warm restarts, graceful degradation if a source fails.</li>
+          <li><strong>Fallback:</strong> If SSE is unavailable, periodic refresh still pulls updates.</li>
+        </ul>
+        <h3>SOURCE INGESTION</h3>
+        <ul>
+          <li><strong>RSS</strong> — curated feeds in <code>config.py</code>.</li>
+          <li><strong>Telegram</strong> — direct <code>t.me/s/</code> channel scrape plus RSSHub fallback.</li>
+          <li><strong>Geocoding</strong> — map search place names via Nominatim (OpenStreetMap), respecting reasonable request rates.</li>
+        </ul>
+        <h3>HEADER &amp; STATUS</h3>
+        <ul>
+          <li>Top classification strip: <strong>SPECTRE OSINT DASHBOARD</strong>.</li>
+          <li><strong>DEFCON STATUS</strong> badge — global threat level from aggregated OSINT severity.</li>
+          <li>Live counters: OSINT items, seismic events, natural events, military flights, net blackouts.</li>
+          <li><strong>REFRESH</strong> line — transport state (e.g. LINK SECURE when synced).</li>
+          <li><strong>ZULU TIME</strong> clock (UTC).</li>
+          <li>Lower header strip: system id (e.g. SPECTRE-2A), feed inventory, mode (LIVE CONTINUOUS), refresh cadence, and feed sources (RSS, TG-OSINT, USGS, EONET, GDELT, ADS-B, CelesTrak, IODA).</li>
+        </ul>
+        <h3>MAP OVERLAYS (layer bar)</h3>
+        <p>Toggle each layer on the map. Color coding follows classification.</p>
+        <ul>
+          <li><strong>OSINT Nodes</strong> — RSS/Telegram-derived hotspots with geo.</li>
+          <li><strong>GDELT Corpus</strong> — GDELT 2.0 conflict-related events (CSV export pipeline).</li>
+          <li><strong>Theater Instability</strong> — country risk rings from OSINT-derived country risk.</li>
+          <li><strong>Air Tracks</strong> — military-focused ADS-B tracks (ADS-B.lol).</li>
+          <li><strong>Satellites</strong> — CelesTrak TLE + SGP4 propagation.</li>
+          <li><strong>Net Blackouts</strong> — IODA internet outage alerts.</li>
+          <li><strong>GPS Jamming · 24h</strong> — GPSJam H3 cells (high-interference snapshot; not real-time).</li>
+          <li><strong>Bases</strong> — military base reference points.</li>
+          <li><strong>Nuclear</strong> — declared / known nuclear facility reference data.</li>
+          <li><strong>Weather</strong> — RainViewer global radar overlay (past ~2h; zoom limits per provider).</li>
+          <li><strong>Seismic</strong> — USGS M4.5+ feed.</li>
+          <li><strong>Nat. Events</strong> — NASA EONET natural events.</li>
+        </ul>
+        <p class="help-note">Keyboard shortcuts: keys 1–0 toggle layers in order (OSINT → … → natural events). Satellites and GPS jamming are not on number keys — use the layer bar buttons.</p>
+        <h3>LEFT SIDEBAR</h3>
+        <ul>
+          <li><strong>THREAT ASSESSMENT</strong> — counts for critical / high / medium / M6+ quakes; top signal categories from the classifier.</li>
+          <li><strong>THEATER INSTABILITY</strong> — ranked country risk; click a row to filter the Live OSINT feed to that theater (country).</li>
+          <li><strong>NET BLACKOUTS</strong> — IODA list; click an item to fly the map to that location.</li>
+        </ul>
+        <h3>MAP &amp; NAVIGATION</h3>
+        <ul>
+          <li><strong>Search</strong> — latitude/longitude, MGRS (via mgrs.js), or place name (Nominatim geocoding). Enter or GO.</li>
+          <li><strong>COCOM quick-fly</strong> — <strong>GLOBAL</strong> plus regional buttons; <strong>Alt+1–6</strong> maps to EUCOM through SOUTHCOM; <strong>G</strong> resets to global view.</li>
+          <li><strong>Coordinate readout</strong> — MGRS under cursor while moving over the map.</li>
+          <li><strong>Leaflet</strong> — zoom control (bottom-right), metric scale (bottom-left), Esri imagery base, boundaries/labels overlay; <strong>Weather</strong> layer adds RainViewer radar tiles when enabled.</li>
+          <li><strong>Fullscreen map</strong> — map control button or <strong>F</strong> hides side panels for a clean map.</li>
+          <li><strong>Right-click map</strong> — context menu: <strong>VIEW SATELLITE IMAGERY</strong> opens NASA GIBS imagery in a modal with date selection and a Leaflet preview.</li>
+        </ul>
+        <h3>RIGHT COLUMN — SEISMIC &amp; OSINT FEED</h3>
+        <ul>
+          <li><strong>SEISMIC LOG</strong> — recent quakes; click to fly to the epicenter.</li>
+          <li><strong>LIVE OSINT FEED</strong> — severity-ranked items (critical→info), recency within tiers; <strong>24-hour retention</strong> for high-signal feed.</li>
+          <li><strong>Classifier</strong> — severities (critical, high, medium, low, info) and categories: conflict, terrorism, cyber, disaster, political, health, economic, nuclear, maritime, aerospace; deterministic color mapping on map markers and feed rows.</li>
+          <li><strong>Country filter</strong> — banner when filtering from Theater Instability; CLEAR to reset.</li>
+          <li><strong>Search</strong> — text filter in the feed list.</li>
+          <li><strong>Filters</strong> — ALL, CRITICAL, HIGH, MEDIUM, KINETIC, CYBER, NUCLEAR, MARITIME, HEALTH, TG-OSINT (Telegram-tagged items).</li>
+          <li><strong>Export</strong> — CSV or JSON snapshot of the current filtered feed (scope label shows FULL FEED or filtered). JSON includes export metadata (UTC timestamp, active filters, UNCLASSIFIED // OPEN SOURCE label).</li>
+          <li><strong>NEW badges</strong> — newly ingested items since your session can show a NEW tag; toasts can alert on critical or bulk ingest.</li>
+        </ul>
+        <h3>FEED &amp; MAP INTERACTIONS</h3>
+        <ul>
+          <li><strong>Left-click OSINT item</strong> — menu: open source, copy OSINT snippet, copy URL, fly to location.</li>
+          <li><strong>C</strong> — copy last left-clicked article to clipboard.</li>
+        </ul>
+        <h3>TOOLBAR</h3>
+        <ul>
+          <li><strong>? HELP</strong> — this reference and replay guided tour.</li>
+          <li><strong>BROADCAST</strong> — curated MP3/HLS radio streams (HLS.js); draggable panel, volume, now-playing.</li>
+          <li><strong>LIVE FEEDS</strong> — public camera / live iframe grid; region filters ALL / NEWS / URBAN.</li>
+          <li><strong>SHORTCUTS</strong> — full keyboard map (also <strong>?</strong>).</li>
+        </ul>
+        <h3>STATUS BAR</h3>
+        <ul>
+          <li>Per-source health dots: OSINT, USGS, EONET, ADS-B, Space, GDELT-CSV, IODA, TG-OSINT.</li>
+          <li><strong>LAST SYNC</strong> timestamp (UTC-style).</li>
+        </ul>
+        <h3>LAYOUT &amp; PERSISTENCE</h3>
+        <ul>
+          <li><strong>Resize</strong> — drag left/right handles to widen side panels.</li>
+          <li><strong>Panel collapse</strong> — click panel headers; panel collapse state persists in localStorage.</li>
+          <li><strong>Toasts</strong> — transient notifications (e.g. fullscreen, sync, export).</li>
+        </ul>
+      </div>
+      <div id="help-ref-actions">
+        <button type="button" class="secondary" onclick="spectreCloseHelpReference()">CLOSE</button>
+        <button type="button" onclick="spectreReplayWelcomeTour()">REPLAY GUIDED TOUR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOAST CONTAINER ───────────────────────────────────────────────────── -->
+  <div id="toast-container"></div>
+
+  <!-- ── LEFT-CLICK CONTEXT MENU (news list opens menu on click) ──────────── -->
+  <div id="ctx-menu">
+    <div class="ctx-item" id="ctx-open"><span class="ctx-icon">↗</span> OPEN SOURCE FILE</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctx-copy-snippet"><span class="ctx-icon">📋</span> COPY OSINT SNIPPET</div>
+    <div class="ctx-item" id="ctx-copy-url"><span class="ctx-icon">🔗</span> COPY URL</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctx-flyto"><span class="ctx-icon">📍</span> FLY TO LOCATION</div>
+  </div>
+
+  <div id="map-ctx-menu">
+    <button id="map-ctx-sat">VIEW SATELLITE IMAGERY</button>
+  </div>
+
+  <div id="sat-modal">
+    <div id="sat-modal-inner">
+      <div id="sat-modal-header">
+        <span style="color:var(--cyan);font-size:16px;">🛰</span>
+        <span id="sat-modal-title">SATELLITE IMAGERY</span>
+        <span id="sat-modal-meta">COORDS: — · NASA DATE: —</span>
+        <select id="sat-date-select" title="NASA imagery date"></select>
+        <button id="sat-modal-close" onclick="closeSatModal()">✕ CLOSE</button>
+      </div>
+      <div id="sat-map"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script>
+    const state = {
+      data: null,
+      activeLayers: new Set(['news', 'gdelt', 'risk']),
+      newsFilter: 'all',
+      countryFilter: null,
+      layers: {},
+      broadcasts: [],
+      cameras: [],
+      currentBcastId: null,
+    };
+
+    // Kiosk mode (?kiosk=1): the page is being rendered by a headless Chrome
+    // for a YouTube Live stream on a server without a GPU. swiftshader WebGL
+    // + Leaflet repaint + CSS animations at 1080p saturates every core, so we
+    // aggressively trim: pause all CSS animations, skip renders for layers
+    // that aren't on the map, and debounce SSE reloads.
+    const IS_KIOSK = new URLSearchParams(location.search).get('kiosk') === '1';
+    if (IS_KIOSK) {
+      const s = document.createElement('style');
+      s.textContent = `
+        *, *::before, *::after {
+          animation-duration: 0s !important;
+          animation-iteration-count: 1 !important;
+          transition: none !important;
+        }
+      `;
+      document.head.appendChild(s);
+    }
+    // Coalesce rapid SSE-driven reloads so one render per window.
+    const SSE_DEBOUNCE_MS = IS_KIOSK ? 30000 : 0;
+    let _sseDebounceTimer = null;
+
+    const map = L.map('map', { center: [20, 10], zoom: 3, zoomControl: false, preferCanvas: true, attributionControl: false });
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    // Distance scale reference (Zulu-style UI uses no attribution; keep minimal map scale)
+    L.control.scale({ position: 'bottomleft', metric: true, imperial: false, maxWidth: 140 }).addTo(map);
+    map.on('contextmenu', function(e) {
+      L.DomEvent.stop(e.originalEvent);
+      openMapCtxMenu(e);
+    });
+
+    // NEW SATELLITE TILE LAYER (z below RainViewer radar, labels on top)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      opacity: 1,
+      zIndex: 0,
+    }).addTo(map);
+
+    // BOUNDARIES AND LABELS OVERLAY
+    L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      opacity: 1,
+      zIndex: 250,
+    }).addTo(map);
+
+    state.layers.news = L.layerGroup().addTo(map);
+    state.layers.earthquakes = L.layerGroup();
+    state.layers.events = L.layerGroup();
+    state.layers.flights = L.layerGroup();
+    state.layers.satellites = L.layerGroup();
+    state.layers.risk = L.layerGroup().addTo(map);
+    state.layers.gdelt = L.layerGroup().addTo(map);
+    state.layers.blackouts = L.layerGroup();
+    state.layers.gpsjam = L.layerGroup();
+    state.layers.bases = L.layerGroup();
+    state.layers.nuclear = L.layerGroup();
+    state.layers.weather = null; // L.TileLayer — RainViewer radar, created on first toggle
+    state.weatherFrameTime = null;
+
+    /**
+     * RainViewer Weather Maps API (see rainviewer_docs.txt):
+     * {host}{path}/{size}/{z}/{x}/{y}/{color}/{options}.png — max native zoom 7.
+     */
+    async function fetchRainViewerMeta() {
+      let res = await fetch('/api/rainviewer', { cache: 'no-store' });
+      let data = res.ok ? await res.json() : null;
+      if (!data || data.error) {
+        res = await fetch('https://api.rainviewer.com/public/weather-maps.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`RainViewer API ${res.status}`);
+        data = await res.json();
+      }
+      if (!data || data.error) throw new Error(data?.error || 'RainViewer unavailable');
+      return data;
+    }
+
+    async function ensureWeatherRadarLayer() {
+      const data = await fetchRainViewerMeta();
+      const host = String(data.host || 'https://tilecache.rainviewer.com').replace(/\/$/, '');
+      const past = data.radar && data.radar.past;
+      if (!past || !past.length) throw new Error('No radar frames');
+      const frame = past[past.length - 1];
+      const path = frame.path;
+      state.weatherFrameTime = frame.time;
+      const size = 512;
+      const color = 2;
+      const options = '1_1';
+      const url = `${host}${path}/${size}/{z}/{x}/{y}/${color}/${options}.png`;
+      state.layers.weather = L.tileLayer(url, {
+        opacity: 0.62,
+        maxZoom: 18,
+        maxNativeZoom: 7,
+        zIndex: 100,
+        className: 'spectre-rainviewer-tiles',
+      });
+    }
+
+    document.querySelectorAll('.layer-btn[data-layer]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const layer = btn.dataset.layer;
+        if (layer === 'weather') {
+          void (async () => {
+            btn.classList.toggle('active');
+            if (state.activeLayers.has('weather')) {
+              state.activeLayers.delete('weather');
+              if (state.layers.weather) map.removeLayer(state.layers.weather);
+              state.layers.weather = null;
+              const w = document.getElementById('weather-radar-hint');
+              if (w) w.remove();
+            } else {
+              try {
+                await ensureWeatherRadarLayer();
+                if (!state.layers.weather) throw new Error('Radar layer unavailable');
+                state.activeLayers.add('weather');
+                map.addLayer(state.layers.weather);
+                const ts = state.weatherFrameTime
+                  ? new Date(state.weatherFrameTime * 1000).toISOString().replace('T', ' ').slice(0, 16) + ' Z'
+                  : '—';
+                let hint = document.getElementById('weather-radar-hint');
+                if (!hint) {
+                  hint = document.createElement('div');
+                  hint.id = 'weather-radar-hint';
+                  hint.style.cssText = 'position:absolute;bottom:52px;left:12px;z-index:1000;font-size:10px;font-family:var(--font-data);color:#5eb8ff;letter-spacing:0.06em;text-shadow:0 1px 2px #000;background:rgba(0,0,0,0.45);padding:4px 8px;border-radius:2px;pointer-events:none;';
+                  document.getElementById('map-container').appendChild(hint);
+                }
+                hint.innerHTML = `RADAR <a href="https://www.rainviewer.com/" target="_blank" rel="noopener" style="color:#7ec8ff;pointer-events:auto">RainViewer</a> · FRAME ${ts}`;
+              } catch (e) {
+                console.error('RainViewer:', e);
+                btn.classList.remove('active');
+              }
+            }
+          })();
+          return;
+        }
+        btn.classList.toggle('active');
+        if (state.activeLayers.has(layer)) {
+          state.activeLayers.delete(layer);
+          map.removeLayer(state.layers[layer]);
+        } else {
+          state.activeLayers.add(layer);
+          map.addLayer(state.layers[layer]);
+        }
+      });
+    });
+
+    function updateClock() {
+      const n = new Date();
+      const h = String(n.getUTCHours()).padStart(2, '0');
+      const m = String(n.getUTCMinutes()).padStart(2, '0');
+      const s = String(n.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('clock-zulu').textContent = `${h}:${m}:${s} Z`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function relTime(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d)) return '—';
+      const diff = (Date.now() - d.getTime()) / 1000;
+      if (diff < 60) return `${Math.floor(diff)}s ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    function zuluStamp(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (!isFinite(d.getTime())) return '—';
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const mon = d.toUTCString().split(' ')[2].toUpperCase();
+      const yyyy = d.getUTCFullYear();
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      const ss = String(d.getUTCSeconds()).padStart(2, '0');
+      return `${dd} ${mon} ${yyyy} ${hh}${mm}${ss}Z`;
+    }
+
+    function escHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function safeExternalUrl(input) {
+      if (!input) return '';
+      try {
+        const u = new URL(String(input), window.location.origin);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+        return u.href;
+      } catch (_) {
+        return '';
+      }
+    }
+
+    function _clampLatLon(lat, lon) {
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      if (lat < -90 || lat > 90) return null;
+      // normalize lon into [-180, 180]
+      while (lon > 180) lon -= 360;
+      while (lon < -180) lon += 360;
+      return { lat, lon };
+    }
+
+    function parseLatLonQuery(q) {
+      const s = String(q || '').trim();
+      if (!s) return null;
+
+      // MGRS (via mgrs.js). Accepts compact or spaced forms.
+      // Example: "33UXP0500045000" or "33UXP 05000 45000"
+      try {
+        if (window.mgrs && /^[0-9]{1,2}[C-HJ-NP-X][A-HJ-NP-Z]{2}/i.test(s.replace(/\s+/g, ''))) {
+          const pt = window.mgrs.toPoint(s);
+          if (Array.isArray(pt) && pt.length >= 2) {
+            const lon = parseFloat(pt[0]);
+            const lat = parseFloat(pt[1]);
+            const ll = _clampLatLon(lat, lon);
+            if (ll) return ll;
+          }
+        }
+      } catch (_) {
+        // fall through to other parsers
+      }
+
+      // Accept formats:
+      // - "lat, lon"
+      // - "lat lon"
+      // - "lat: xx, lon: yy"
+      // - "N 38.9 W 77.0"
+      const mNamed = s.match(/lat\s*[:=]?\s*([-+]?\d+(\.\d+)?)\s*[,\s]+lon\s*[:=]?\s*([-+]?\d+(\.\d+)?)/i);
+      if (mNamed) return _clampLatLon(parseFloat(mNamed[1]), parseFloat(mNamed[3]));
+
+      const mCard = s.match(/([NS])\s*([-+]?\d+(\.\d+)?)\s*[, ]+\s*([EW])\s*([-+]?\d+(\.\d+)?)/i);
+      if (mCard) {
+        const lat = parseFloat(mCard[2]) * (mCard[1].toUpperCase() === 'S' ? -1 : 1);
+        const lon = parseFloat(mCard[5]) * (mCard[4].toUpperCase() === 'W' ? -1 : 1);
+        return _clampLatLon(lat, lon);
+      }
+
+      const nums = s.match(/[-+]?\d+(\.\d+)?/g);
+      if (nums && nums.length >= 2) {
+        const a = parseFloat(nums[0]);
+        const b = parseFloat(nums[1]);
+        // Heuristic: if first looks like lon (>90), assume lon,lat order.
+        if (Math.abs(a) > 90 && Math.abs(b) <= 90) return _clampLatLon(b, a);
+        return _clampLatLon(a, b);
+      }
+
+      return null;
+    }
+
+    function togglePanel(header) {
+      const body = header.nextElementSibling;
+      body.classList.toggle('collapsed');
+      header.querySelector('.collapse-arrow').style.transform = body.classList.contains('collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)';
+    }
+
+    function makeAircraftIcon(heading, color, flagged) {
+      const rot = (heading != null) ? heading : 0;
+      const sz = flagged ? 22 : 16;
+      const op = flagged ? '1' : '0.8';
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="-8 -8 16 16"
+      style="transform:rotate(${rot}deg);transform-origin:center center;overflow:visible;display:block;">
+    <g fill="${color}" opacity="${op}">
+      <polygon points="0,-8 -2,-3 -6,-1 -6,1 -1.5,0 -1.5,4 -3,6 -3,7 0,6 3,7 3,6 1.5,4 1.5,0 6,1 6,-1 2,-3"/>
+    </g>
+    ${flagged ? `<circle cx="0" cy="0" r="10" fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="3 3"/>` : ''}
+  </svg>`;
+
+      return L.divIcon({
+        className: 'aircraft-icon',
+        html: svg,
+        iconSize: [sz, sz],
+        iconAnchor: [sz / 2, sz / 2],
+        popupAnchor: [0, -(sz / 2 + 4)],
+      });
+    }
+
+    function makeCircle(lat, lon, color, radius, weight) {
+      return L.circleMarker([lat, lon], {
+        radius: radius || 6, fillColor: color, color: color,
+        weight: weight || 1.5, opacity: 1, fillOpacity: 0.2,
+      });
+    }
+
+    function renderNewsLayer(articles) {
+      state.layers.news.clearLayers();
+      articles.forEach(art => {
+        if (!art.geo) return;
+        const r = art.severity_score >= 4 ? 12 : art.severity_score >= 3 ? 8 : 5;
+        const m = makeCircle(art.geo.lat, art.geo.lon, art.color, r, 2);
+        m.bindPopup(`
+      <div class="popup-label">OSINT INTERCEPT</div>
+      <div class="popup-title">${escHtml(art.title)}</div>
+      <div class="popup-meta">
+        SEVERITY: <span style="color:${art.color}; font-weight:700;">${(art.severity || '').toUpperCase()}</span><br>
+        SOURCE: ${escHtml(art.source)} (T${art.tier})<br>
+        TIME: ${relTime(art.published)}<br>
+        LOCATION: ${escHtml(art.geo.location)}
+      </div>
+      ${safeExternalUrl(art.url) ? `<a class="popup-link" href="${safeExternalUrl(art.url)}" target="_blank" rel="noopener noreferrer">▶ ACCESS SOURCE FILE</a>` : ''}
+      <div class="popup-classified">SPECTRE // UNCLASS // OPEN SOURCE</div>
+    `);
+        state.layers.news.addLayer(m);
+      });
+    }
+
+    function renderEarthquakeLayer(quakes) {
+      state.layers.earthquakes.clearLayers();
+      quakes.forEach(q => {
+        const r = Math.max(4, Math.min(22, (q.magnitude - 3) * 4));
+        if (q.magnitude >= 6) {
+          state.layers.earthquakes.addLayer(L.circleMarker([q.lat, q.lon], {
+            radius: r + 10, fillColor: 'transparent', color: q.color,
+            weight: 1.5, opacity: 0.6, fillOpacity: 0, dashArray: '4,6',
+          }));
+        }
+        const m = makeCircle(q.lat, q.lon, q.color, r, 1.5);
+        m.bindPopup(`
+      <div class="popup-label">SEISMIC ANOMALY</div>
+      <div class="popup-title">M${q.magnitude} — ${escHtml(q.place)}</div>
+      <div class="popup-meta">
+        MAGNITUDE: <span style="color:${q.color}; font-weight:bold;">${q.magnitude}</span><br>
+        DEPTH: ${q.depth_km} KM<br>TIME: ${relTime(q.time)}
+      </div>
+      ${safeExternalUrl(q.url) ? `<a class="popup-link" href="${safeExternalUrl(q.url)}" target="_blank" rel="noopener noreferrer">▶ USGS TELEMETRY</a>` : ''}
+    `);
+        state.layers.earthquakes.addLayer(m);
+      });
+    }
+
+    function renderEventsLayer(events) {
+      state.layers.events.clearLayers();
+      events.forEach(ev => {
+        const m = makeCircle(ev.lat, ev.lon, ev.color, 7, 2);
+        m.bindPopup(`
+      <div class="popup-label">ENVIRONMENTAL EVENT</div>
+      <div class="popup-title">${escHtml(ev.title)}</div>
+      <div class="popup-meta">CLASS: ${escHtml(ev.category).toUpperCase()}<br>TIME: ${relTime(ev.date)}</div>
+      ${safeExternalUrl(ev.url) ? `<a class="popup-link" href="${safeExternalUrl(ev.url)}" target="_blank" rel="noopener noreferrer">▶ SATELLITE DATA</a>` : ''}
+    `);
+        state.layers.events.addLayer(m);
+      });
+    }
+
+    function renderFlightsLayer(flights) {
+      state.layers.flights.clearLayers();
+      flights.forEach(f => {
+        const icon = makeAircraftIcon(f.heading, f.interesting ? '#ff9100' : '#00e5ff', f.interesting);
+        const m = L.marker([f.lat, f.lon], { icon });
+        m.bindPopup(`
+      <div class="popup-label">${f.interesting ? '⚠ TARGET OF INTEREST' : 'RADAR CONTACT'}</div>
+      <div class="popup-title">${escHtml(f.callsign || f.icao24 || 'UNKNOWN IDENT')}</div>
+      <div class="popup-meta">
+        TRANSPONDER: ${escHtml(f.icao24 || '—')}<br>
+        COUNTRY: ${escHtml(f.country || 'Unknown')}<br>
+        ORIGIN: ${escHtml(f.origin || 'adsb.lol')}<br>
+        MILITARY: ${f.military === true ? 'YES' : 'UNKNOWN'}<br>
+        REG: ${escHtml(f.registration || '—')}<br>
+        TYPE: ${escHtml(f.aircraft_type || f.category || '—')}<br>
+        ALT: ${f.altitude_m ? Math.round(f.altitude_m * 3.28084).toLocaleString() + ' FT' : '—'}<br>
+        SPD: ${f.speed_ms ? Math.round(f.speed_ms * 1.944) + ' KTS' : '—'}<br>
+        HDG: ${f.heading != null ? f.heading + '°' : '—'}
+      </div>
+    `);
+        state.layers.flights.addLayer(m);
+      });
+    }
+
+    function renderSatellitesLayer(satellites) {
+      state.layers.satellites.clearLayers();
+      satellites.forEach(s => {
+        const color =
+          s.category === 'military' ? '#ff4d4d' :
+          s.category === 'comms' ? '#9a7dff' :
+          '#888888';
+        const m = L.circleMarker([s.lat, s.lon], {
+          radius: 4,
+          fillColor: color,
+          color,
+          weight: 1,
+          opacity: 0.9,
+          fillOpacity: 0.85,
+        });
+        m.bindPopup(`
+      <div class="popup-label" style="color:${color}">SPACE TRACK</div>
+      <div class="popup-title">${escHtml(s.name || 'UNIDENTIFIED SAT')}</div>
+      <div class="popup-meta">
+        NORAD: ${escHtml(s.norad_id || '—')}<br>
+        CLASS: ${escHtml((s.category || 'space').toUpperCase())}<br>
+        GROUP: ${escHtml((s.group || 'filtered').toUpperCase())}<br>
+        ALT: ${s.alt_km != null ? Number(s.alt_km).toLocaleString() + ' KM' : '—'}<br>
+        PRIORITY: ${s.priority != null ? s.priority : '—'}<br>
+        SOURCE: CELESTRAK + SGP4
+      </div>
+      <div class="popup-classified">SPECTRE // UNCLASS // SPACE DOMAIN</div>
+    `);
+        state.layers.satellites.addLayer(m);
+      });
+    }
+
+    function renderRiskLayer(risk) {
+      state.layers.risk.clearLayers();
+      risk.forEach(c => {
+        if (c.risk < 40) return;
+        const r = Math.max(15, Math.min(50, c.risk * 0.5));
+        const m = L.circleMarker([c.lat, c.lon], {
+          radius: r, fillColor: c.color, color: c.color,
+          weight: 1, opacity: 0.6, fillOpacity: 0.1,
+        });
+        m.bindPopup(`
+      <div class="popup-label">THEATER ASSESSMENT</div>
+      <div class="popup-title">${escHtml(c.country)}</div>
+      <div class="popup-meta">
+        INSTABILITY RATING: <span style="color:${c.color}; font-weight:700;">${c.risk}/100</span><br>
+        PRIORITY: ${c.tier.toUpperCase()}
+      </div>
+    `);
+        state.layers.risk.addLayer(m);
+      });
+    }
+
+    function renderGdeltLayer(articles) {
+      state.layers.gdelt.clearLayers();
+      articles.forEach(art => {
+        if (!art.geo) return;
+        const m = L.circleMarker([art.geo.lat, art.geo.lon], {
+          radius: 5, fillColor: '#00e5ff', color: '#00e5ff',
+          weight: 1, opacity: 0.8, fillOpacity: 0.2, dashArray: '2,2',
+        });
+        m.bindPopup(`
+      <div class="popup-label">GDELT EVENT DETECTED</div>
+      <div class="popup-title">${escHtml(art.title)}</div>
+      <div class="popup-meta">
+        SEVERITY: <span style="color:${art.color || '#00e5ff'}; font-weight:700;">${(art.severity || 'UNKNOWN').toUpperCase()}</span><br>
+        SOURCE: ${escHtml(art.source || 'GDELT/Events2')}<br>
+        TIME: ${relTime(art.published)}<br>
+        LOCATION: ${escHtml(art.geo.location)}<br>
+        SUMMARY: ${escHtml(art.summary)}
+      </div>
+      ${safeExternalUrl(art.url) ? `<a class="popup-link" href="${safeExternalUrl(art.url)}" target="_blank" rel="noopener noreferrer">▶ ACCESS SOURCE FILE</a>` : ''}
+      <div class="popup-classified">SPECTRE // UNCLASS // GDELT CORPUS</div>
+    `);
+        state.layers.gdelt.addLayer(m);
+      });
+    }
+
+    let allNews = [];
+    function sortNewest(items) {
+      return [...items].sort((a, b) => new Date(b.published || 0).getTime() - new Date(a.published || 0).getTime());
+    }
+
+
+    document.querySelectorAll('#news-filters .filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#news-filters .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderNewsList(btn.dataset.sev);
+      });
+    });
+
+
+    function renderRiskSidebar(risk) {
+      document.getElementById('risk-count').textContent = risk.length;
+      document.getElementById('risk-list').innerHTML = risk.slice(0, 30).map(c => `
+    <div class="risk-item${state.countryFilter === c.country ? ' country-selected' : ''}"
+         data-country="${escHtml(c.country)}"
+         data-lat="${c.lat}"
+         data-lon="${c.lon}">
+      <div class="risk-name">${escHtml(c.country)}</div>
+      <div class="risk-bar-bg">
+        <div class="risk-bar" style="width:${c.risk}%;background:${c.color}"></div>
+      </div>
+      <div class="risk-score" style="color:${c.color}">${c.risk}</div>
+    </div>
+  `).join('');
+    }
+
+    // Event delegation for risk-list clicks — avoids broken inline onclick w/ JSON
+    document.getElementById('risk-list').addEventListener('click', function(e) {
+      const item = e.target.closest('.risk-item[data-country]');
+      if (!item) return;
+      const country = item.dataset.country;
+      const lat = parseFloat(item.dataset.lat);
+      const lon = parseFloat(item.dataset.lon);
+      selectCountryFilter(country, lat, lon);
+    });
+
+    function renderThreatSummary(summary) {
+      const sc = summary.severity_counts || {};
+      document.getElementById('cnt-critical').textContent = sc.critical || 0;
+      document.getElementById('cnt-high').textContent = sc.high || 0;
+      document.getElementById('cnt-medium').textContent = sc.medium || 0;
+      document.getElementById('cnt-quakes').textContent = (summary.big_earthquakes || []).length;
+
+      const badge = document.getElementById('threat-level-badge');
+      const lvl = summary.global_threat_level || 'guarded';
+      badge.textContent = 'DEFCON STATUS: ' + lvl.toUpperCase();
+      badge.className = lvl !== 'guarded' ? lvl : '';
+
+      const cats = summary.top_categories || [];
+      document.getElementById('top-categories').innerHTML = cats.map((c, i) => `
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-family:var(--font-data);font-size:11px;">
+      <span style="color:var(--text-main)">[${String(i + 1).padStart(2, '0')}] ${c.category.toUpperCase()}</span>
+      <b style="color:var(--cyan)">${c.count}</b>
+    </div>
+  `).join('');
+    }
+
+    function setDot(id, ok) {
+      const el = document.getElementById(id);
+      if (el) el.className = 'status-dot ' + (ok ? 'ok' : 'err');
+    }
+
+    // ── Render Blackouts Layer ────────────────────────────────────────────────────
+    function baseBranchColor(branch) {
+      const b = String(branch || '').toLowerCase();
+      if (b === 'air_force' || b.includes('air')) return '#7cb7ff';
+      if (b === 'navy' || b === 'msdf') return '#4a9eff';
+      if (b === 'marines' || b.includes('marine')) return '#c45cff';
+      if (b === 'army' || b === 'gsdf') return '#8fbc8f';
+      if (b === 'missile' || b === 'nuclear') return '#ff6b6b';
+      if (b === 'asdf') return '#ffd93d';
+      return '#9abf7f';
+    }
+
+    function renderMilitaryBasesLayer(bases) {
+      state.layers.bases.clearLayers();
+      (bases || []).forEach(base => {
+        const lat = base.lat, lon = base.lon;
+        if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
+        const col = baseBranchColor(base.branch);
+        const m = L.circleMarker([lat, lon], {
+          radius: 5,
+          fillColor: col,
+          color: col,
+          weight: 1.2,
+          opacity: 0.95,
+          fillOpacity: 0.55,
+        });
+        const br = String(base.branch || '').replace(/_/g, ' ');
+        m.bindPopup(`
+      <div class="popup-label" style="color:#9abf7f">MILITARY INSTALLATION</div>
+      <div class="popup-title">${escHtml(base.name)}</div>
+      <div class="popup-meta">
+        COUNTRY: ${escHtml(base.country)}<br>
+        BRANCH: ${escHtml(br.toUpperCase())}<br>
+        OPERATOR: ${escHtml(base.operator)}
+      </div>
+      <div class="popup-classified">SPECTRE // REF DATA // OPEN SOURCE</div>
+    `);
+        state.layers.bases.addLayer(m);
+      });
+    }
+
+    function nuclearThreatColor(threat) {
+      const t = String(threat || '').toLowerCase();
+      if (t === 'critical') return '#ff0040';
+      if (t === 'high') return '#ff6b35';
+      if (t === 'medium') return '#ffcc00';
+      if (t === 'low') return '#88aa88';
+      return '#e8a035';
+    }
+
+    function renderNuclearFacilitiesLayer(facilities) {
+      state.layers.nuclear.clearLayers();
+      (facilities || []).forEach(f => {
+        const lat = f.lat, lon = f.lon;
+        if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
+        const col = nuclearThreatColor(f.threat_level);
+        const tr = (f.threat_level || 'unknown').toUpperCase();
+        const rad = f.threat_level === 'critical' ? 7 : f.threat_level === 'high' ? 6 : 5;
+        const m = L.circleMarker([lat, lon], {
+          radius: rad,
+          fillColor: col,
+          color: col,
+          weight: 1.4,
+          opacity: 0.95,
+          fillOpacity: 0.5,
+        });
+        const typ = String(f.type || '').replace(/_/g, ' ');
+        m.bindPopup(`
+      <div class="popup-label" style="color:#e8a035">☢ NUCLEAR FACILITY</div>
+      <div class="popup-title">${escHtml(f.name)}</div>
+      <div class="popup-meta">
+        COUNTRY: ${escHtml(f.country)}<br>
+        TYPE: ${escHtml(typ.toUpperCase())}<br>
+        STATUS: ${escHtml(String(f.status || '').toUpperCase())}<br>
+        THREAT: <span style="color:${col};font-weight:700;">${escHtml(tr)}</span><br>
+        OPERATOR: ${escHtml(f.operator)}<br>
+        ${f.notes ? `NOTES: ${escHtml(f.notes)}` : ''}
+      </div>
+      <div class="popup-classified">SPECTRE // REF DATA // OPEN SOURCE</div>
+    `);
+        state.layers.nuclear.addLayer(m);
+      });
+    }
+
+    function renderBlackoutsLayer(blackouts) {
+      state.layers.blackouts.clearLayers();
+      blackouts.forEach(b => {
+        // Pulsing circle marker on the map
+        const r = b.level === 'critical' ? 18 : b.level === 'warning' ? 12 : 7;
+        const outer = L.circleMarker([b.lat, b.lon], {
+          radius: r + 8, fillColor: 'transparent', color: b.color,
+          weight: 1.5, opacity: 0.5, fillOpacity: 0, dashArray: '4 4',
+        });
+        const inner = L.circleMarker([b.lat, b.lon], {
+          radius: r, fillColor: b.color, color: b.color,
+          weight: 1.5, opacity: 0.9, fillOpacity: 0.18,
+        });
+        inner.bindPopup(`
+      <div class="popup-label" style="color:var(--med)">🌐 INTERNET DISRUPTION</div>
+      <div class="popup-title">${escHtml(b.country)}</div>
+      <div class="popup-meta">
+        LEVEL: <span style="color:${b.color};font-weight:700;">${b.level.toUpperCase()}</span><br>
+        SOURCE: ${escHtml(b.source)}<br>
+        SIGNAL: ${escHtml(b.signals || '—')}<br>
+        DETECTED: ${relTime(b.started)}
+      </div>
+      <a class="popup-link" href="https://ioda.inetintel.cc.gatech.edu/" target="_blank" rel="noopener noreferrer">▶ IODA DASHBOARD</a>
+    `);
+        state.layers.blackouts.addLayer(outer);
+        state.layers.blackouts.addLayer(inner);
+      });
+    }
+
+    function gpsJamColor(intensity) {
+      const x = Math.max(0.1, Math.min(1.0, Number(intensity) || 0.1));
+      if (x >= 0.6) return '#7f0000';
+      if (x >= 0.25) return '#cc2200';
+      return '#ff6b00';
+    }
+
+    function renderGpsJamLayer(cells) {
+      state.layers.gpsjam.clearLayers();
+      (cells || []).forEach(cell => {
+        const lat = Number(cell.lat);
+        const lon = Number(cell.lon);
+        const intensity = Number(cell.intensity);
+        if (isNaN(lat) || isNaN(lon) || isNaN(intensity) || intensity <= 0.1) return;
+        const color = gpsJamColor(intensity);
+        const marker = L.circleMarker([lat, lon], {
+          radius: 5 + (Math.min(1, intensity) * 7),
+          fillColor: color,
+          color: color,
+          weight: 1.2,
+          opacity: 0.95,
+          fillOpacity: 0.28,
+        });
+        marker.bindPopup(`
+      <div class="popup-label" style="color:#ff8a3d">HIGH GPS INTERFERENCE</div>
+      <div class="popup-title">${escHtml(cell.h3 || 'H3 CELL')}</div>
+      <div class="popup-meta">
+        INTERFERENCE: <span style="color:${color};font-weight:700;">${(intensity * 100).toFixed(1)}%</span><br>
+        H3 CELL: ${escHtml(cell.h3 || '—')}<br>
+        TIMESTAMP: ${escHtml(cell.timestamp || '—')}<br>
+        SOURCE: GPSJAM<br>
+        WINDOW: PREVIOUS 24H (NOT REAL-TIME)
+      </div>
+    `);
+        state.layers.gpsjam.addLayer(marker);
+      });
+    }
+
+    // ── Broadcast Radio Player ────────────────────────────────────────────────────
+
+    function renderQuakeList(quakes) {
+      document.getElementById('quake-count').textContent = quakes.length;
+      document.getElementById('hdr-quakes').textContent = quakes.length;
+      document.getElementById('quake-list').innerHTML = quakes.slice(0, 30).map(q => `
+    <div class="quake-item" data-lat="${q.lat}" data-lon="${q.lon}" data-zoom="6">
+      <div class="quake-mag" style="color:${q.color}">${q.magnitude.toFixed(1)}</div>
+      <div class="quake-info">
+        <div class="quake-place">${escHtml(q.place)}</div>
+        <div class="quake-time">${relTime(q.time)} // DEPTH: ${q.depth_km}KM</div>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    document.getElementById('quake-list').addEventListener('click', function(e) {
+      const item = e.target.closest('.quake-item[data-lat]');
+      if (!item) return;
+      const lat = parseFloat(item.dataset.lat), lon = parseFloat(item.dataset.lon);
+      if (!isNaN(lat) && !isNaN(lon)) map.flyTo([lat, lon], parseInt(item.dataset.zoom) || 6);
+    });
+
+    function renderBlackoutSidebar(blackouts) {
+      const count = blackouts.length;
+      document.getElementById('blackout-count').textContent = count;
+      document.getElementById('hdr-blackouts').textContent = count;
+
+      const el = document.getElementById('blackout-list');
+      if (!count) {
+        el.innerHTML = '<div style="padding:10px 14px;font-size:10px;color:var(--low);font-family:var(--font-data)">✓ NO ACTIVE DISRUPTIONS DETECTED</div>';
+        return;
+      }
+      el.innerHTML = blackouts.map(b => `
+    <div class="blackout-item" data-lat="${b.lat}" data-lon="${b.lon}" data-zoom="5">
+      <div class="blackout-flag" style="background:${b.color};color:${b.color}"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="blackout-country">${escHtml(b.country)}</div>
+        <div class="blackout-signal">${escHtml(b.signals || 'Signal anomaly detected')}</div>
+      </div>
+      <div class="blackout-level" style="color:${b.color}">${b.level.toUpperCase()}</div>
+    </div>
+  `).join('');
+    }
+
+    document.getElementById('blackout-list').addEventListener('click', function(e) {
+      const item = e.target.closest('.blackout-item[data-lat]');
+      if (!item) return;
+      const lat = parseFloat(item.dataset.lat), lon = parseFloat(item.dataset.lon);
+      if (!isNaN(lat) && !isNaN(lon)) map.flyTo([lat, lon], parseInt(item.dataset.zoom) || 5);
+    });
+
+    let _hlsInstance = null;
+
+    function toggleBroadcast() {
+      const panel = document.getElementById('broadcast-panel');
+      const btn = document.getElementById('btn-broadcast');
+      const vis = panel.classList.toggle('visible');
+      btn.classList.toggle('broadcast-active', vis);
+      if (vis && state.broadcasts.length === 0) loadBroadcasts();
+    }
+
+    async function loadBroadcasts() {
+      try {
+        const r = await fetch('/api/broadcasts');
+        state.broadcasts = await r.json();
+        renderBroadcastList();
+      } catch (e) {
+        document.getElementById('broadcast-list').innerHTML =
+          '<div style="padding:10px 12px;font-size:10px;color:var(--crit);font-family:var(--font-data)">STREAM CATALOG UNAVAILABLE</div>';
+      }
+    }
+
+    function renderBroadcastList() {
+      document.getElementById('broadcast-list').innerHTML = state.broadcasts.map(s => `
+    <div class="bcast-stream" id="bcast-row-${escHtml(String(s.id))}" data-bcast-id="${escHtml(String(s.id))}">
+      <span class="bcast-org">${escHtml(s.org)}</span>
+      <div class="bcast-info">
+        <div class="bcast-name">${escHtml(s.name)}</div>
+        <div class="bcast-desc">${escHtml(s.desc)}</div>
+      </div>
+      <span class="bcast-play-btn">▶</span>
+    </div>
+  `).join('');
+    }
+
+    document.getElementById('broadcast-list').addEventListener('click', function(e) {
+      const row = e.target.closest('.bcast-stream[data-bcast-id]');
+      if (!row) return;
+      playBroadcast(row.dataset.bcastId);
+    });
+
+    function playBroadcast(id) {
+      const stream = state.broadcasts.find(s => s.id === id);
+      if (!stream) return;
+
+      // Stop previous
+      if (_hlsInstance) { _hlsInstance.destroy(); _hlsInstance = null; }
+      const audio = document.getElementById('bcast-audio');
+      audio.pause(); audio.src = '';
+
+      // Un-highlight all rows
+      document.querySelectorAll('.bcast-stream').forEach(r => {
+        r.classList.remove('playing');
+        r.querySelector('.bcast-play-btn').textContent = '▶';
+      });
+
+      if (state.currentBcastId === id) {
+        // Toggle off
+        state.currentBcastId = null;
+        document.getElementById('broadcast-np-text').textContent = 'NO SIGNAL';
+        document.querySelectorAll('.eq-bar').forEach(b => b.classList.add('paused'));
+        return;
+      }
+
+      state.currentBcastId = id;
+      document.getElementById('broadcast-np-text').textContent = stream.name.toUpperCase();
+      document.querySelectorAll('.eq-bar').forEach(b => b.classList.remove('paused'));
+
+      const row = document.querySelector(`.bcast-stream[data-bcast-id="${CSS.escape(String(id))}"]`);
+      if (row) { row.classList.add('playing'); row.querySelector('.bcast-play-btn').textContent = '■'; }
+
+      if (stream.format === 'hls' && Hls.isSupported()) {
+        _hlsInstance = new Hls();
+        _hlsInstance.loadSource(stream.url);
+        _hlsInstance.attachMedia(audio);
+        _hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => audio.play().catch(() => { }));
+      } else if (stream.format === 'hls' && audio.canPlayType('application/vnd.apple.mpegurl')) {
+        audio.src = stream.url;
+        audio.play().catch(() => { });
+      } else {
+        // MP3 direct
+        audio.src = stream.url;
+        audio.play().catch(() => {
+          document.getElementById('broadcast-np-text').textContent = 'CORS BLOCKED — OPEN EXTERNALLY';
+        });
+      }
+      audio.volume = parseFloat(document.getElementById('broadcast-vol').value);
+    }
+
+    function setBcastVol(v) {
+      const audio = document.getElementById('bcast-audio');
+      audio.volume = parseFloat(v);
+    }
+
+    // Make broadcast panel draggable
+    (function () {
+      let dragging = false, ox = 0, oy = 0;
+      const hdr = document.getElementById('broadcast-header');
+      const pan = document.getElementById('broadcast-panel');
+      if (!hdr || !pan) return;
+      hdr.addEventListener('mousedown', e => {
+        dragging = true;
+        const r = pan.getBoundingClientRect();
+        ox = e.clientX - r.left; oy = e.clientY - r.top;
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', () => { dragging = false; document.removeEventListener('mousemove', onMove); });
+      });
+      function onMove(e) {
+        if (!dragging) return;
+        pan.style.left = (e.clientX - ox) + 'px';
+        pan.style.top = (e.clientY - oy) + 'px';
+        pan.style.right = 'auto';
+        pan.style.bottom = 'auto';
+      }
+    })();
+
+    // ── Live Feeds / Camera Modal ─────────────────────────────────────────────────
+    async function openCamModal(region) {
+      document.getElementById('cam-modal').classList.add('visible');
+      if (state.cameras.length === 0) {
+        try {
+          const r = await fetch('/api/cameras');
+          state.cameras = await r.json();
+        } catch (e) {
+          document.getElementById('cam-grid').innerHTML =
+            '<div style="padding:40px;text-align:center;color:var(--crit);font-family:var(--font-data)">FEED MANIFEST UNAVAILABLE</div>';
+          return;
+        }
+      }
+      renderCamGrid(region || 'ALL');
+    }
+
+    function closeCamModal() {
+      // Unload all iframes to stop video/audio playback
+      document.querySelectorAll('#cam-grid iframe').forEach(f => { f.src = ''; });
+      document.getElementById('cam-modal').classList.remove('visible');
+    }
+
+    let _mapCtxLatLng = null;
+    let _satModalMap = null;
+    let _satModalLayer = null;
+
+    function zuluYmd(dateObj) {
+      const yyyy = dateObj.getUTCFullYear();
+      const mm = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getUTCDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function resolveRecentNasaImageryDates(maxOptions = 4, maxLookbackDays = 21) {
+      const base = new Date();
+      base.setUTCHours(0, 0, 0, 0);
+      const dates = [];
+      for (let d = 1; d <= maxLookbackDays && dates.length < maxOptions; d++) {
+        const candidate = new Date(base);
+        candidate.setUTCDate(candidate.getUTCDate() - d);
+        const dateStr = zuluYmd(candidate);
+        const probe = `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${dateStr}/GoogleMapsCompatible_Level9/0/0/0.jpg`;
+        try {
+          const r = await fetch(probe, { cache: 'no-store' });
+          if (r.ok) dates.push(dateStr);
+        } catch (ex) {}
+      }
+      if (dates.length) return dates;
+      const fallback = new Date(base);
+      fallback.setUTCDate(fallback.getUTCDate() - 1);
+      return [zuluYmd(fallback)];
+    }
+
+    function buildNasaTileUrl(imageryDate) {
+      return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${imageryDate}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+    }
+
+    function applySatImageryDate(latlng, imageryDate) {
+      if (!_satModalMap) return;
+      if (_satModalLayer) {
+        _satModalMap.removeLayer(_satModalLayer);
+        _satModalLayer = null;
+      }
+      _satModalLayer = L.tileLayer(buildNasaTileUrl(imageryDate), {
+        maxZoom: 9,
+        maxNativeZoom: 9,
+        attribution: 'NASA GIBS MODIS Terra True Color',
+      });
+      _satModalLayer.addTo(_satModalMap);
+      _satModalMap.setView([latlng.lat, latlng.lng], 14);
+      document.getElementById('sat-modal-meta').textContent =
+        `COORDS: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)} · NASA DATE: ${imageryDate}`;
+    }
+
+    function openMapCtxMenu(e) {
+      _mapCtxLatLng = e.latlng;
+      const menu = document.getElementById('map-ctx-menu');
+      const x = Math.min(e.originalEvent.clientX, window.innerWidth - 240);
+      const y = Math.min(e.originalEvent.clientY, window.innerHeight - 70);
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      menu.classList.add('visible');
+    }
+
+    function closeMapCtxMenu() {
+      document.getElementById('map-ctx-menu').classList.remove('visible');
+    }
+
+    async function openSatModal(latlng) {
+      const modal = document.getElementById('sat-modal');
+      const meta = document.getElementById('sat-modal-meta');
+      const dateSelect = document.getElementById('sat-date-select');
+      modal.classList.add('visible');
+      meta.textContent = `COORDS: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)} · NASA DATE: RESOLVING...`;
+      dateSelect.innerHTML = '<option value="">Loading…</option>';
+      dateSelect.disabled = true;
+
+      if (_satModalMap) {
+        _satModalMap.off();
+        _satModalMap.remove();
+        _satModalMap = null;
+        _satModalLayer = null;
+      }
+
+      _satModalMap = L.map('sat-map', { center: [latlng.lat, latlng.lng], zoom: 14, zoomControl: true, attributionControl: true });
+
+      const recentDates = await resolveRecentNasaImageryDates(4, 21);
+      dateSelect.innerHTML = recentDates.map(d => `<option value="${d}">${d}</option>`).join('');
+      dateSelect.disabled = false;
+      dateSelect.onchange = () => {
+        if (!dateSelect.value) return;
+        applySatImageryDate(latlng, dateSelect.value);
+      };
+
+      applySatImageryDate(latlng, recentDates[0]);
+      setTimeout(() => _satModalMap && _satModalMap.invalidateSize(), 30);
+    }
+
+    function closeSatModal() {
+      document.getElementById('sat-modal').classList.remove('visible');
+      const dateSelect = document.getElementById('sat-date-select');
+      dateSelect.innerHTML = '';
+      dateSelect.disabled = true;
+      dateSelect.onchange = null;
+      if (_satModalMap) {
+        _satModalMap.off();
+        _satModalMap.remove();
+        _satModalMap = null;
+      }
+      _satModalLayer = null;
+    }
+
+    function filterCams(region, btn) {
+      document.querySelectorAll('.cam-region-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderCamGrid(region);
+    }
+
+    function renderCamGrid(region) {
+      let cams = state.cameras;
+      if (region && region !== 'ALL') cams = cams.filter(c => c.region === region);
+      if (!cams.length) {
+        document.getElementById('cam-grid').innerHTML =
+          '<div style="padding:40px;text-align:center;color:var(--text-mute);font-family:var(--font-data)">NO FEEDS FOR SELECTED REGION</div>';
+        return;
+      }
+      document.getElementById('cam-grid').innerHTML = cams.map(c => {
+        // Build YouTube embed URL — always embed the live stream for channel IDs
+        let embedSrc = '';
+        if (c.type === 'youtube_ch') {
+          // Channel live stream embed; autoplay muted so browser allows it
+          embedSrc = `https://www.youtube.com/embed/live_stream?channel=${c.embed_id}&autoplay=1&mute=1&controls=1`;
+        } else if (c.type === 'youtube_v') {
+          embedSrc = `https://www.youtube.com/embed/${c.embed_id}?autoplay=1&mute=1&controls=1`;
+        } else if (c.type === 'iframe') {
+          embedSrc = c.embed_id;
+        }
+        return `
+      <div class="cam-tile">
+        <div class="cam-tile-header">
+          <span class="cam-live-badge">● LIVE</span>
+          <span class="cam-tile-city">${escHtml(c.city)}</span>
+          <span class="cam-tile-name">${escHtml(c.name)}</span>
+        </div>
+        <iframe src="${escHtml(embedSrc)}"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowfullscreen loading="lazy"></iframe>
+        <div class="cam-tile-desc">${escHtml(c.desc)}</div>
+      </div>
+    `;
+      }).join('');
+    }
+
+    // Close camera modal with Escape key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeCamModal();
+    });
+
+    // renderNewsList — canonical definition wired below after state/search vars are set
+    let renderNewsList = function() {};
+
+    // ── Two-phase data loader ─────────────────────────────────────────────────────
+    // Phase 1 (/api/fast): earthquakes + events + risk — always in disk cache,
+    //                      completes in <200ms, hides loading overlay immediately.
+    // Phase 2 (/api/all):  everything else — fills news, GDELT, flights, blackouts.
+
+    async function _loadFast() {
+      try {
+        const resp = await fetch('/api/fast');
+        if (!resp.ok) return false;
+        const data = await resp.json();
+        const quakes = data.earthquakes || [];
+        const events = data.events || [];
+        const risk = data.risk || [];
+        const milBases = data.military_bases || [];
+        const nuclear = data.nuclear_facilities || [];
+        const hasFastContent =
+          quakes.length > 0 || events.length > 0 || risk.length > 0
+          || milBases.length > 0 || nuclear.length > 0;
+        if (!hasFastContent) return false;
+
+        renderEarthquakeLayer(quakes);
+        renderEventsLayer(events);
+        renderRiskLayer(risk);
+        renderMilitaryBasesLayer(milBases);
+        renderNuclearFacilitiesLayer(nuclear);
+        renderQuakeList(quakes);
+        renderRiskSidebar(risk);
+        document.getElementById('hdr-quakes').textContent = quakes.length;
+        setDot('dot-quakes', quakes.length > 0);
+        setDot('dot-events', events.length > 0);
+
+        // Hide loading overlay immediately — map is usable now
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.transition = 'opacity 0.3s ease';
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 300);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function _loadFull() {
+      const rs = document.getElementById('refresh-status');
+      rs.textContent = 'SYNCING…';
+      rs.className = '';
+      try {
+        const resp = await fetch('/api/all');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        const news = data.news || [];
+        const quakes = data.earthquakes || [];
+        const events = data.events || [];
+        const flights = data.flights || [];
+        const satellites = data.satellites || [];
+        const risk = data.risk || [];
+        const summary = data.summary || {};
+        const gdelt = data.gdelt || [];
+        const blackouts = data.blackouts || [];
+        const gpsjam = data.gpsjam || [];
+        const milBases = data.military_bases || [];
+        const nuclear = data.nuclear_facilities || [];
+
+        allNews = sortNewest(news);
+
+        // In kiosk mode, only render layers that are actually shown on the
+        // map — the expensive map-marker builds (popups, SVG icons, H3 cells)
+        // otherwise burn CPU creating L.layerGroup objects that never draw.
+        const _render = (layer, fn) => {
+          if (!IS_KIOSK || state.activeLayers.has(layer)) fn();
+        };
+        _render('news',        () => renderNewsLayer(allNews.filter(a => a.geo)));
+        _render('earthquakes', () => renderEarthquakeLayer(quakes));
+        _render('events',      () => renderEventsLayer(events));
+        _render('flights',     () => renderFlightsLayer(flights));
+        _render('satellites',  () => renderSatellitesLayer(satellites));
+        _render('risk',        () => renderRiskLayer(risk));
+        _render('gdelt',       () => renderGdeltLayer(gdelt.filter(a => a.geo)));
+        _render('blackouts',   () => renderBlackoutsLayer(blackouts));
+        _render('gpsjam',      () => renderGpsJamLayer(gpsjam));
+        _render('bases',       () => renderMilitaryBasesLayer(milBases));
+        _render('nuclear',     () => renderNuclearFacilitiesLayer(nuclear));
+
+        renderQuakeList(quakes);
+        renderNewsList(state.newsFilter);
+        renderRiskSidebar(risk);
+        renderThreatSummary(summary);
+        renderBlackoutSidebar(blackouts);
+
+        document.getElementById('hdr-news').textContent = news.length;
+        document.getElementById('hdr-events').textContent = events.length;
+        document.getElementById('hdr-flights').textContent = flights.length;
+
+        const tgCount = news.filter(a => (a.tags || []).includes('telegram')).length;
+        setDot('dot-news', news.length > 0);
+        setDot('dot-quakes', quakes.length > 0);
+        setDot('dot-events', events.length > 0);
+        setDot('dot-flights', flights.length > 0);
+        setDot('dot-satellites', satellites.length > 0);
+        setDot('dot-gdelt', gdelt.length > 0);
+        setDot('dot-blackouts', true);
+        setDot('dot-tg', tgCount > 0);
+
+        // Ensure overlay is gone
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay.style.display !== 'none') {
+          overlay.style.transition = 'opacity 0.3s ease';
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        const n = new Date();
+        const ts = `${String(n.getUTCHours()).padStart(2, '0')}${String(n.getUTCMinutes()).padStart(2, '0')}Z `
+          + `${n.toUTCString().split(' ')[1].toUpperCase()} ${n.getUTCFullYear()}`;
+        document.getElementById('last-update').textContent = ts;
+        rs.textContent = 'LINK SECURE';
+        rs.className = 'ok';
+
+        if (state.broadcasts.length === 0) loadBroadcasts();
+
+        setTimeout(() => { try { window.spectreTryFirstVisitTour?.(); } catch (e) {} }, 500);
+
+      } catch (err) {
+        rs.textContent = 'NOLINK';
+        rs.className = 'err';
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay.style.display !== 'none') {
+          overlay.innerHTML = `
+        <div style="color:var(--crit);font-size:14px;text-align:center;letter-spacing:0.1em;line-height:2">
+          <span style="font-size:24px;font-weight:bold;">⚠ SYSTEM FAILURE</span><br>
+          UNABLE TO ESTABLISH SATELLITE HANDSHAKE<br>
+          <span style="font-size:11px;color:var(--text-mute);font-family:var(--font-data)">ERR_CODE: ${escHtml(err.message)}</span><br><br>
+          <button onclick="loadAll()" style="background:transparent;color:var(--cyan);border:1px solid var(--cyan);padding:8px 24px;cursor:pointer;font-family:var(--font-ui);font-weight:700;letter-spacing:0.1em;font-size:12px;">
+            REINITIALIZE LINK
+          </button>
+        </div>`;
+        }
+      }
+    }
+
+    let _loadInFlight = false;
+    let _pendingReload = false;
+
+    async function loadAll() {
+      if (_loadInFlight) {
+        _pendingReload = true;
+        return;
+      }
+      _loadInFlight = true;
+      try {
+        await _loadFast();
+        await _loadFull();
+      } finally {
+        _loadInFlight = false;
+        if (_pendingReload) {
+          _pendingReload = false;
+          loadAll();
+        }
+      }
+    }
+
+    let _mapSearchMarker = null;
+    let _geoAbort = null;
+
+    async function geocodeNameToLatLon(name) {
+      const q = String(name || '').trim();
+      if (!q) return null;
+
+      try { if (_geoAbort) _geoAbort.abort(); } catch(_) {}
+      _geoAbort = new AbortController();
+
+      // Nominatim usage policy expects reasonable rate-limiting and a valid Referer.
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+      const r = await fetch(url, { signal: _geoAbort.signal, headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw new Error(`GEOCODE HTTP ${r.status}`);
+      const data = await r.json();
+      const hit = Array.isArray(data) ? data[0] : null;
+      if (!hit) return null;
+      const lat = parseFloat(hit.lat);
+      const lon = parseFloat(hit.lon);
+      return _clampLatLon(lat, lon);
+    }
+
+    async function mapSearchGo() {
+      const input = document.getElementById('map-search-input');
+      const btn = document.getElementById('map-search-go');
+      const raw = (input && input.value) ? input.value : '';
+      const q = String(raw || '').trim();
+      if (!q) return;
+
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        let ll = parseLatLonQuery(q);
+        if (!ll) ll = await geocodeNameToLatLon(q);
+        if (!ll) {
+          showToast('NO MATCH — TRY "LAT, LON" OR PLACE NAME', 'critical', 2600);
+          return;
+        }
+
+        const z = Math.max(map.getZoom(), 6);
+        map.flyTo([ll.lat, ll.lon], z, { duration: 1.2, easeLinearity: 0.25 });
+
+        try { if (_mapSearchMarker) map.removeLayer(_mapSearchMarker); } catch(_) {}
+        _mapSearchMarker = L.circleMarker([ll.lat, ll.lon], {
+          radius: 7,
+          weight: 2,
+          color: '#00e5ff',
+          fillColor: '#00e5ff',
+          fillOpacity: 0.12,
+        }).addTo(map);
+
+        showToast(`NAVIGATED → ${ll.lat.toFixed(4)}, ${ll.lon.toFixed(4)}`, 'info', 2200);
+      } catch (e) {
+        const msg = (e && e.name === 'AbortError') ? 'SEARCH CANCELLED' : 'SEARCH FAILED';
+        showToast(msg, 'critical', 2400);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'GO';
+      }
+    }
+
+    function syncMapHudMetrics() {
+      const mc = document.getElementById('map-container');
+      if (!mc) return;
+      const search = document.getElementById('map-search');
+      const coord = document.getElementById('coord-readout');
+      if (search) mc.style.setProperty('--hud-search-h', `${Math.ceil(search.offsetHeight)}px`);
+      if (coord) mc.style.setProperty('--hud-coord-h', `${Math.ceil(coord.offsetHeight)}px`);
+    }
+
+    function initRealtimeUpdates() {
+      if (!window.EventSource) return;
+
+      // Keep a stable reference + reconnect with backoff so SSE survives flaky networks/proxies.
+      if (window._spectreSse && window._spectreSse.readyState !== 2) return;
+
+      let retryMs = 1000;
+      const maxRetryMs = 15000;
+
+      const connect = () => {
+        try {
+          const es = new EventSource('/api/stream');
+          window._spectreSse = es;
+
+          es.addEventListener('hello', () => {
+            retryMs = 1000;
+          });
+
+          es.addEventListener('data_updated', () => {
+            // In kiosk mode, debounce so a burst of backend refreshes does
+            // not trigger N back-to-back map-layer rebuilds.
+            if (SSE_DEBOUNCE_MS > 0) {
+              if (_sseDebounceTimer) clearTimeout(_sseDebounceTimer);
+              _sseDebounceTimer = setTimeout(() => {
+                _sseDebounceTimer = null;
+                loadAll();
+              }, SSE_DEBOUNCE_MS);
+              return;
+            }
+            loadAll();
+          });
+
+          es.onerror = () => {
+            try { es.close(); } catch (_) {}
+            window._spectreSse = null;
+            setTimeout(connect, retryMs);
+            retryMs = Math.min(maxRetryMs, Math.floor(retryMs * 1.7));
+          };
+        } catch (_) {
+          // Polling fallback remains active.
+        }
+      };
+
+      connect();
+    }
+
+    // ── KICKOFF deferred to end of script after all functions defined ─────────────
+
+    // ── MGRS CONVERSION ───────────────────────────────────────────────────────────
+    // Compact but accurate lat/lon → MGRS implementation
+    (function() {
+      const _a = 6378137.0, _f = 1/298.257223563;
+      const _b = _a*(1-_f), _e2 = 1-((_b*_b)/(_a*_a)), _e = Math.sqrt(_e2);
+      const _k0 = 0.9996;
+      const _E0 = 500000;
+
+      function toUTM(lat, lon) {
+        const latR = lat * Math.PI/180;
+        let zone = Math.floor((lon+180)/6)+1;
+        // Special zones for Norway/Svalbard
+        if (lat>=56&&lat<64&&lon>=3&&lon<12) zone=32;
+        if (lat>=72&&lat<84) {
+          if (lon>=0&&lon<9) zone=31;
+          else if (lon>=9&&lon<21) zone=33;
+          else if (lon>=21&&lon<33) zone=35;
+          else if (lon>=33&&lon<42) zone=37;
+        }
+        const lonCM = (zone-1)*6-180+3;
+        const lonR = (lon - lonCM)*Math.PI/180;
+        const N = _a/Math.sqrt(1-_e2*Math.sin(latR)*Math.sin(latR));
+        const T = Math.tan(latR)*Math.tan(latR);
+        const C = (_e2/(1-_e2))*Math.cos(latR)*Math.cos(latR);
+        const A = Math.cos(latR)*lonR;
+        const e2 = _e2; const e4=e2*e2; const e6=e4*e2;
+        const M = _a*((1-e2/4-3*e4/64-5*e6/256)*latR
+          -(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*latR)
+          +(15*e4/256+45*e6/1024)*Math.sin(4*latR)
+          -(35*e6/3072)*Math.sin(6*latR));
+        const x = _k0*N*(A+(1-T+C)*A*A*A/6+(5-18*T+T*T+72*C-58*(_e2/(1-_e2)))*A*A*A*A*A/120)+_E0;
+        const y = _k0*(M+N*Math.tan(latR)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24+(61-58*T+T*T+600*C-330*(_e2/(1-_e2)))*A*A*A*A*A*A/720));
+        const northing = lat < 0 ? y + 10000000 : y;
+        return { zone, northing, easting: x };
+      }
+
+      const _bands = 'CDEFGHJKLMNPQRSTUVWXX';
+      function latBand(lat) {
+        if (lat < -80 || lat > 84) return '?';
+        return _bands[Math.floor((lat+80)/8)];
+      }
+
+      // 100km square ID
+      const _e100k = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+      const _n100k = 'ABCDEFGHJKLMNPQRSTUV';
+
+      function sq100k(zone, easting, northing) {
+        const setNum = (zone-1) % 6;
+        const eCol = [1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8][Math.floor(easting/100000)-1 + setNum*3]||1;
+        const eLetter = _e100k[(Math.floor(easting/100000)-1) + (setNum%3)*8];
+        const rowNum = Math.floor(northing/100000) % 20;
+        const nOffset = (setNum % 2 === 1) ? 5 : 0;
+        const nLetter = _n100k[(rowNum + nOffset) % 20];
+        return (eLetter||'A') + (nLetter||'A');
+      }
+
+      window.latLonToMGRS = function(lat, lon, precision) {
+        precision = precision || 5; // digits per easting/northing = 1m
+        if (lat < -80 || lat > 84) return 'POLAR';
+        const utm = toUTM(lat, lon);
+        const band = latBand(lat);
+        const sq = sq100k(utm.zone, utm.easting, utm.northing);
+        const factor = Math.pow(10, 5 - precision);
+        const e = String(Math.floor((utm.easting % 100000) / factor)).padStart(precision, '0');
+        const n = String(Math.floor((utm.northing % 100000) / factor)).padStart(precision, '0');
+        return `${utm.zone}${band} ${sq} ${e} ${n}`;
+      };
+    })();
+
+    // ── COORDINATE READOUT (MGRS) ─────────────────────────────────────────────────
+    map.on('mousemove', function(e) {
+      try {
+        const mgrs = latLonToMGRS(e.latlng.lat, e.latlng.lng, 5);
+        document.getElementById('coord-readout').textContent = mgrs;
+      } catch(ex) {
+        const lat = e.latlng.lat.toFixed(4);
+        const lon = e.latlng.lng.toFixed(4);
+        document.getElementById('coord-readout').textContent = `${lat} ${lon}`;
+      }
+    });
+
+    // ── FULLSCREEN AS LEAFLET MAP CONTROL ─────────────────────────────────────────
+    const FullscreenControl = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function() {
+        const btn = L.DomUtil.create('button', 'leaflet-fullscreen-btn');
+        btn.innerHTML = '⛶';
+        btn.title = 'Fullscreen map [F]';
+        btn.style.cssText = [
+          'width:30px','height:30px','line-height:30px','text-align:center',
+          'background:rgba(3,5,10,0.85)','color:#00e5ff','border:1px solid #2c405a',
+          'cursor:pointer','font-size:16px','display:block',
+          'backdrop-filter:blur(6px)','transition:all 0.2s',
+          'clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)',
+        ].join(';');
+        btn.onmouseover = () => { btn.style.color='#fff'; btn.style.borderColor='#00e5ff'; };
+        btn.onmouseout  = () => { btn.style.color='#00e5ff'; btn.style.borderColor='#2c405a'; };
+        L.DomEvent.on(btn, 'click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          toggleMapFullscreen();
+        });
+        return btn;
+      }
+    });
+    new FullscreenControl().addTo(map);
+
+    // Update fullscreen toggle to target the map control button
+    function toggleMapFullscreen() {
+      document.body.classList.toggle('map-fullscreen');
+      const isFS = document.body.classList.contains('map-fullscreen');
+      document.querySelector('.leaflet-fullscreen-btn').innerHTML = isFS ? '⊡' : '⛶';
+      document.querySelector('.leaflet-fullscreen-btn').title = isFS ? 'Exit fullscreen [F]' : 'Fullscreen map [F]';
+      setTimeout(() => map.invalidateSize(), 320);
+      showToast(isFS ? 'MAP FULLSCREEN — PRESS F TO RESTORE' : 'PANELS RESTORED', 'info');
+    }
+
+    // ── COCOM QUICK-FLY ───────────────────────────────────────────────────────────
+    function cocFly(lat, lon, zoom) {
+      map.flyTo([lat, lon], zoom, { duration: 1.4, easeLinearity: 0.3 });
+    }
+
+    // ── TOAST SYSTEM ──────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'info', duration = 3000) {
+      const tc = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => { t.remove(); }, duration + 100);
+    }
+
+    // ── KEYBOARD SHORTCUTS MODAL ──────────────────────────────────────────────────
+    function openKbModal() {
+      document.getElementById('kb-modal').classList.add('visible');
+    }
+
+    function closeKbModal() {
+      document.getElementById('kb-modal').classList.remove('visible');
+    }
+
+    // ── NEWS SEARCH ───────────────────────────────────────────────────────────────
+    let _newsSearchTerm = '';
+
+    function onNewsSearch(val) {
+      _newsSearchTerm = val.trim().toLowerCase();
+      const clearBtn = document.getElementById('news-search-clear');
+      clearBtn.classList.toggle('visible', _newsSearchTerm.length > 0);
+      renderNewsList(state.newsFilter);
+    }
+
+    function clearNewsSearch() {
+      document.getElementById('news-search').value = '';
+      _newsSearchTerm = '';
+      document.getElementById('news-search-clear').classList.remove('visible');
+      renderNewsList(state.newsFilter);
+    }
+
+    // Override renderNewsList to add search filtering + country filter + NEW badges
+    renderNewsList = function(filter = 'all') {
+      state.newsFilter = filter;
+      const list = document.getElementById('news-list');
+      let items = allNews;
+
+      if (filter === 'telegram') {
+        items = allNews.filter(a => (a.tags || []).includes('telegram'));
+      } else if (['critical', 'high', 'medium', 'low'].includes(filter)) {
+        items = allNews.filter(a => a.severity === filter);
+      } else if (filter !== 'all') {
+        items = allNews.filter(a => (a.categories || []).includes(filter));
+      }
+
+      if (state.countryFilter) {
+        const cf = state.countryFilter.toLowerCase();
+        items = items.filter(a => {
+          const loc     = ((a.geo && a.geo.location) || '').toLowerCase();
+          const title   = (a.title || '').toLowerCase();
+          const summary = (a.summary || '').toLowerCase();
+          return loc.includes(cf) || title.includes(cf) || summary.includes(cf);
+        });
+      }
+
+      if (_newsSearchTerm) {
+        items = items.filter(a =>
+          (a.title || '').toLowerCase().includes(_newsSearchTerm) ||
+          (a.source || '').toLowerCase().includes(_newsSearchTerm) ||
+          ((a.geo && a.geo.location) || '').toLowerCase().includes(_newsSearchTerm) ||
+          (a.summary || '').toLowerCase().includes(_newsSearchTerm)
+        );
+      }
+
+      items = sortNewest(items);
+
+      const hasFilters = state.countryFilter || _newsSearchTerm || filter !== 'all';
+      document.getElementById('news-count').textContent = hasFilters
+        ? `${items.length} / ${allNews.length}`
+        : items.length;
+      document.getElementById('export-scope').textContent = hasFilters
+        ? `FILTERED · ${items.length} ITEMS`
+        : `FULL FEED · ${allNews.length} ITEMS`;
+
+      state._visibleNews = items;
+
+      // Render items using data attributes — NO inline JSON/onclick to avoid quote collisions
+      list.innerHTML = items.slice(0, 150).map((art, idx) => {
+        const isTg  = (art.tags || []).includes('telegram');
+        const isNew = _newItemIds.has(art.url || art.title);
+        return `
+    <div class="news-item sev-${art.severity}" data-news-idx="${idx}">
+      <div class="news-title">
+        <span class="sev-pip" style="background:${art.color}"></span>
+        ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+        ${isTg ? '<span style="color:#24a1de;font-size:9px;font-family:var(--font-data);margin-right:4px;">📡TG</span>' : ''}
+        ${escHtml(art.title)}
+      </div>
+      <div class="news-meta">
+        <span style="color:var(--text-bright)">${escHtml(art.source)}</span>
+        <span style="color:var(--cyan)" title="${art.published ? new Date(art.published).toUTCString() : ''}">${zuluStamp(art.published)}</span>
+        ${art.geo ? `<span>📍 ${escHtml(art.geo.location)}</span>` : ''}
+        ${art.severity === 'critical' || art.severity === 'high'
+            ? `<span class="cat-tag" style="color:${art.color}">${(art.categories || ['general'])[0].toUpperCase()}</span>` : ''}
+      </div>
+    </div>`;
+      }).join('');
+    };
+
+    // Event delegation for news-list clicks — safe regardless of title content
+    document.getElementById('news-list').addEventListener('click', function(e) {
+      const item = e.target.closest('.news-item[data-news-idx]');
+      if (!item) return;
+      const idx = parseInt(item.dataset.newsIdx);
+      const art = (state._visibleNews || [])[idx];
+      if (!art) return;
+      openCtxMenu(e, art);
+    });
+
+    // ── NEW ITEM TRACKING ─────────────────────────────────────────────────────────
+    let _newItemIds = new Set();
+    let _knownIds = new Set();
+    let _firstLoad = true;
+
+    function trackNewItems(news) {
+      _newItemIds.clear();
+      if (_firstLoad) {
+        news.forEach(a => _knownIds.add(a.url || a.title));
+        _firstLoad = false;
+        return;
+      }
+      let critCount = 0;
+      news.forEach(a => {
+        const id = a.url || a.title;
+        if (!_knownIds.has(id)) {
+          _newItemIds.add(id);
+          _knownIds.add(id);
+          if (a.severity === 'critical') critCount++;
+        }
+      });
+      if (_newItemIds.size > 0) {
+        if (critCount > 0) {
+          showToast(`⚠ ${critCount} NEW CRITICAL ITEM${critCount > 1 ? 'S' : ''} DETECTED`, 'critical', 5000);
+        } else {
+          showToast(`▶ ${_newItemIds.size} NEW OSINT ITEM${_newItemIds.size > 1 ? 'S' : ''} INGESTED`, 'info');
+        }
+      }
+    }
+
+    // ── OSINT FEED CONTEXT MENU (left-click on news item) ─────────────────────────
+    let _ctxArticle = null;
+
+    function openCtxMenu(e, artJson) {
+      e.stopPropagation();
+      try {
+        _ctxArticle = typeof artJson === 'string' ? JSON.parse(artJson) : artJson;
+      } catch(ex) {
+        _ctxArticle = null;
+      }
+      const menu = document.getElementById('ctx-menu');
+      menu.classList.add('visible');
+      const x = Math.min(e.clientX, window.innerWidth - 190);
+      const y = Math.min(e.clientY, window.innerHeight - 160);
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+    }
+
+    function closeCtxMenu() {
+      document.getElementById('ctx-menu').classList.remove('visible');
+    }
+
+    document.getElementById('ctx-open').addEventListener('click', () => {
+      const safeUrl = _ctxArticle ? safeExternalUrl(_ctxArticle.url) : '';
+      if (safeUrl) window.open(safeUrl, '_blank', 'noopener,noreferrer');
+      closeCtxMenu();
+    });
+
+    document.getElementById('ctx-copy-snippet').addEventListener('click', () => {
+      if (!_ctxArticle) return closeCtxMenu();
+      const a = _ctxArticle;
+      const ts = a.published ? new Date(a.published).toUTCString() : '—';
+      const loc = a.geo ? a.geo.location : 'LOCATION UNKNOWN';
+      const snippet =
+`[SPECTRE OSINT INTERCEPT]
+TITLE: ${a.title}
+SOURCE: ${a.source || '—'}
+SEVERITY: ${(a.severity || 'unknown').toUpperCase()}
+LOCATION: ${loc}
+TIME: ${ts}
+URL: ${a.url || '—'}
+---`;
+      navigator.clipboard.writeText(snippet).then(() => {
+        showToast('OSINT SNIPPET COPIED TO CLIPBOARD', 'ok');
+      }).catch(() => {
+        showToast('CLIPBOARD ACCESS DENIED', 'critical');
+      });
+      closeCtxMenu();
+    });
+
+    document.getElementById('ctx-copy-url').addEventListener('click', () => {
+      if (!_ctxArticle || !_ctxArticle.url) return closeCtxMenu();
+      navigator.clipboard.writeText(_ctxArticle.url).then(() => {
+        showToast('URL COPIED TO CLIPBOARD', 'ok');
+      });
+      closeCtxMenu();
+    });
+
+    document.getElementById('ctx-flyto').addEventListener('click', () => {
+      if (_ctxArticle && _ctxArticle.geo) {
+        map.flyTo([_ctxArticle.geo.lat, _ctxArticle.geo.lon], 7, { duration: 1.2 });
+        showToast(`FLYING TO ${(_ctxArticle.geo.location || '').toUpperCase()}`, 'info');
+      } else {
+        showToast('NO GEO DATA FOR THIS ITEM', 'critical', 2000);
+      }
+      closeCtxMenu();
+    });
+
+    document.getElementById('map-ctx-sat').addEventListener('click', async () => {
+      if (!_mapCtxLatLng) return closeMapCtxMenu();
+      closeMapCtxMenu();
+      await openSatModal(_mapCtxLatLng);
+    });
+
+    document.getElementById('sat-modal').addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'sat-modal') closeSatModal();
+    });
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('ctx-menu');
+      if (menu.classList.contains('visible') && !menu.contains(e.target)) {
+        closeCtxMenu();
+      }
+      const mapMenu = document.getElementById('map-ctx-menu');
+      if (mapMenu.classList.contains('visible') && !mapMenu.contains(e.target)) {
+        closeMapCtxMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('ctx-menu').contains(e.target)) closeCtxMenu();
+      if (!document.getElementById('map-ctx-menu').contains(e.target)) closeMapCtxMenu();
+    });
+
+    // ── MASTER KEYBOARD SHORTCUT HANDLER ─────────────────────────────────────────
+    const _layerKeys = {
+      '1': 'news', '2': 'gdelt', '3': 'risk', '4': 'flights',
+      '5': 'blackouts', '6': 'bases', '7': 'nuclear', '8': 'weather',
+      '9': 'earthquakes', '0': 'events',
+    };
+
+    const _cocomKeys = {
+      '1': [45, 10, 4], '2': [25, 45, 4], '3': [5, 115, 4],
+      '4': [5, 20, 4],  '5': [38, -97, 4], '6': [-15, -60, 4],
+    };
+
+    document.addEventListener('keydown', function(e) {
+      const tag = document.activeElement.tagName.toLowerCase();
+      const inInput = tag === 'input' || tag === 'textarea';
+
+      // ESC — close everything
+      if (e.key === 'Escape') {
+        const hm = document.getElementById('help-ref-modal');
+        if (hm && hm.classList.contains('visible')) {
+          spectreCloseHelpReference();
+          return;
+        }
+        if (_spectreDriverRef && _spectreDriverRef.isActive()) {
+          try { _spectreDriverRef.destroy(); } catch (err) {}
+          return;
+        }
+        closeKbModal();
+        closeCamModal();
+        closeCtxMenu();
+        closeMapCtxMenu();
+        closeSatModal();
+        if (state.countryFilter) { clearCountryFilter(); return; }
+        if (inInput) {
+          clearNewsSearch();
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (inInput) return; // don't fire shortcuts while typing
+
+      // Alt + number = COCOM quick-fly
+      if (e.altKey && _cocomKeys[e.key]) {
+        e.preventDefault();
+        const [lat, lon, z] = _cocomKeys[e.key];
+        cocFly(lat, lon, z);
+        return;
+      }
+
+      switch(e.key) {
+        case '?':
+          document.getElementById('kb-modal').classList.contains('visible') ? closeKbModal() : openKbModal();
+          break;
+        case 'f': case 'F':
+          toggleMapFullscreen();
+          break;
+        case 'r': case 'R':
+          showToast('FORCING TELEMETRY SYNC…', 'info', 1500);
+          loadAll();
+          break;
+        case 'g': case 'G':
+          cocFly(20, 10, 2);
+          break;
+        case 'b': case 'B':
+          toggleBroadcast();
+          break;
+        case 's': case 'S':
+          e.preventDefault();
+          document.getElementById('news-search').focus();
+          break;
+        default:
+          if (_layerKeys[e.key]) {
+            const layer = _layerKeys[e.key];
+            const btn = document.querySelector(`.layer-btn[data-layer="${layer}"]`);
+            if (btn) btn.click();
+          }
+      }
+    });
+
+    // ── SIDEBAR RESIZE HANDLES ────────────────────────────────────────────────────
+    (function() {
+      function makeResizable(handleId, targetId, side) {
+        const handle = document.getElementById(handleId);
+        const target = document.getElementById(targetId);
+        if (!handle || !target) return;
+
+        let dragging = false, startX = 0, startW = 0;
+
+        handle.addEventListener('mousedown', e => {
+          dragging = true;
+          startX = e.clientX;
+          startW = target.getBoundingClientRect().width;
+          handle.classList.add('dragging');
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', e => {
+          if (!dragging) return;
+          const delta = side === 'left'
+            ? e.clientX - startX
+            : startX - e.clientX;
+          const newW = Math.max(200, Math.min(500, startW + delta));
+          target.style.width = newW + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+          if (!dragging) return;
+          dragging = false;
+          handle.classList.remove('dragging');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          map.invalidateSize();
+        });
+      }
+
+      makeResizable('resize-left', 'sidebar-left', 'left');
+      makeResizable('resize-right', 'panel-right', 'right');
+    })();
+
+    // ── PANEL STATE PERSISTENCE ───────────────────────────────────────────────────
+    (function() {
+      function savePanelState() {
+        const states = {};
+        document.querySelectorAll('.panel-body').forEach((body, i) => {
+          states[i] = body.classList.contains('collapsed');
+        });
+        try { localStorage.setItem('spectre_panel_states', JSON.stringify(states)); } catch(e) {}
+      }
+
+      function restorePanelState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem('spectre_panel_states') || '{}');
+          document.querySelectorAll('.panel-body').forEach((body, i) => {
+            if (saved[i]) {
+              body.classList.add('collapsed');
+              const arrow = body.previousElementSibling && body.previousElementSibling.querySelector('.collapse-arrow');
+              if (arrow) arrow.style.transform = 'rotate(-90deg)';
+            }
+          });
+        } catch(e) {}
+      }
+
+      restorePanelState();
+
+      // Intercept togglePanel to also save state
+      const _origTogglePanel = togglePanel;
+      window.togglePanel = function(header) {
+        _origTogglePanel(header);
+        savePanelState();
+      };
+    })();
+
+    // ── COUNTRY FILTER (Theater Instability → OSINT feed) ────────────────────────
+    function selectCountryFilter(country, lat, lon) {
+      if (state.countryFilter === country) {
+        clearCountryFilter();
+        return;
+      }
+      state.countryFilter = country;
+
+      // Update filter banner
+      document.getElementById('country-filter-bar').classList.add('active');
+      document.getElementById('country-filter-label').textContent =
+        `◈ THEATER: ${country.toUpperCase()}`;
+
+      // Fly map to country
+      map.flyTo([lat, lon], 5, { duration: 1.2, easeLinearity: 0.3 });
+
+      // Re-render feed with country filter applied
+      renderNewsList(state.newsFilter);
+
+      // Highlight selected row, clear others
+      document.querySelectorAll('.risk-item[data-country]').forEach(el => {
+        el.classList.toggle('country-selected', el.dataset.country === country);
+      });
+
+      document.getElementById('news-list').scrollTop = 0;
+      showToast(`THEATER FILTER: ${country.toUpperCase()}`, 'info', 2000);
+    }
+
+    function clearCountryFilter() {
+      state.countryFilter = null;
+      document.getElementById('country-filter-bar').classList.remove('active');
+      document.getElementById('country-filter-label').textContent = '◈ ALL COUNTRIES';
+      document.querySelectorAll('.risk-item.country-selected').forEach(el => {
+        el.classList.remove('country-selected');
+      });
+      renderNewsList(state.newsFilter);
+      showToast('THEATER FILTER CLEARED — GLOBAL VIEW', 'info', 2000);
+    }
+
+    // ── EXPORT FEED ───────────────────────────────────────────────────────────────
+    function exportFeed(format) {
+      const items = (state._visibleNews && state._visibleNews.length > 0)
+        ? state._visibleNews
+        : allNews;
+
+      if (!items || items.length === 0) {
+        showToast('NO DATA TO EXPORT', 'critical', 2000);
+        return;
+      }
+
+      const now = new Date();
+      const ts = `${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}_${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}Z`;
+      const scope = state.countryFilter ? `_${state.countryFilter.replace(/\s+/g,'_')}` : '';
+      const sev = state.newsFilter !== 'all' ? `_${state.newsFilter}` : '';
+      const filename = `SPECTRE_OSINT${scope}${sev}_${ts}`;
+
+      if (format === 'csv') {
+        const headers = ['date_utc','title','source','severity','category','location','lat','lon','url'];
+        const rows = items.map(a => {
+          const cat = ((a.categories || ['general'])[0] || '').toUpperCase();
+          const loc = (a.geo && a.geo.location) ? a.geo.location : '';
+          const lat = (a.geo && a.geo.lat != null) ? a.geo.lat : '';
+          const lon = (a.geo && a.geo.lon != null) ? a.geo.lon : '';
+          const pub = a.published ? new Date(a.published).toISOString() : '';
+          // CSV-safe: wrap fields in quotes, escape internal quotes
+          const esc = v => `"${String(v || '').replace(/"/g,'""')}"`;
+          return [esc(pub), esc(a.title), esc(a.source), esc(a.severity || ''), esc(cat), esc(loc), lat, lon, esc(a.url || '')].join(',');
+        });
+        const csv = [headers.join(','), ...rows].join('\r\n');
+        triggerDownload(csv, `${filename}.csv`, 'text/csv;charset=utf-8;');
+      } else {
+        const payload = items.map(a => ({
+          date_utc: a.published ? new Date(a.published).toISOString() : null,
+          title: a.title || '',
+          source: a.source || '',
+          tier: a.tier || null,
+          severity: a.severity || '',
+          severity_score: a.severity_score || null,
+          categories: a.categories || [],
+          tags: a.tags || [],
+          location: (a.geo && a.geo.location) || null,
+          lat: (a.geo && a.geo.lat != null) ? a.geo.lat : null,
+          lon: (a.geo && a.geo.lon != null) ? a.geo.lon : null,
+          url: a.url || '',
+          summary: a.summary || '',
+        }));
+        const meta = {
+          exported_utc: now.toISOString(),
+          spectre_system: 'SPECTRE-2A',
+          classification: 'UNCLASSIFIED // OPEN SOURCE',
+          filter_severity: state.newsFilter,
+          filter_country: state.countryFilter || 'ALL',
+          filter_search: _newsSearchTerm || null,
+          total_items: payload.length,
+          items: payload,
+        };
+        triggerDownload(JSON.stringify(meta, null, 2), `${filename}.json`, 'application/json');
+      }
+
+      showToast(`EXPORTED ${items.length} ITEMS → ${filename}.${format.toUpperCase()}`, 'ok', 3000);
+    }
+
+    function triggerDownload(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    }
+
+    // ── WELCOME TOUR + HELP (Driver.js, dynamic import) ───────────────────────────
+    const SPECTRE_ONBOARD_KEY = 'spectre_onboarding_v2';
+    let _spectreTourReplay = false;
+    let _spectreDriverRef = null;
+
+    function spectreCloseHelpReference() {
+      const m = document.getElementById('help-ref-modal');
+      if (m) { m.classList.remove('visible'); m.setAttribute('aria-hidden', 'true'); }
+    }
+
+    function spectreOpenHelpReference() {
+      const m = document.getElementById('help-ref-modal');
+      if (m) { m.classList.add('visible'); m.setAttribute('aria-hidden', 'false'); }
+    }
+
+    async function spectreReplayWelcomeTour() {
+      spectreCloseHelpReference();
+      _spectreTourReplay = true;
+      const { driver } = await import('https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.mjs');
+      spectreRunDriverTour(driver);
+    }
+
+    function spectreBuildTourSteps() {
+      return [
+        {
+          popover: {
+            title: 'WELCOME TO SPECTRE',
+            description: 'SPECTRE is a global intelligence and threat monitor: one operational map for geopolitical OSINT, conflict signals, disasters, military air and satellite tracks, strategic infrastructure, internet blackouts, and GPS interference. Core feeds use free, public sources only — no paid API keys are required for a full deployment. The classifier tags items by severity (critical, high, medium, low, info) and category (conflict, terrorism, cyber, disaster, political, health, economic, nuclear, maritime, aerospace) with consistent color coding on the map and in the feed.',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          popover: {
+            title: 'DATA PIPELINE & RELIABILITY',
+            description: 'Real-time: Server-Sent Events on /api/stream notify the UI when data changes. Fast boot uses /api/fast then /api/all so the map is usable quickly. Background jobs refresh RSS, Telegram, GDELT, USGS, EONET, ADS-B, CelesTrak, IODA, and GPSJam on staggered intervals. The backend uses parallel prefetch, stale-while-revalidate caching, and disk persistence (.spectre_cache.json) for warm restarts. If a source fails, others keep working.',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#header',
+          popover: {
+            title: 'HEADER & TELEMETRY',
+            description: 'Banner: SPECTRE OSINT DASHBOARD. DEFCON STATUS reflects aggregated global threat from OSINT. Counters summarize OSINT items, seismic and natural events, military flights, and net blackouts. The refresh line shows transport state (LINK SECURE when synced). Zulu (UTC) clock. The lower strip shows system id, mode, refresh cadence, and configured feeds: RSS, TG-OSINT, USGS, EONET, GDELT, ADS-B, CelesTrak, IODA.',
+            side: 'bottom',
+            align: 'center',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#layer-bar',
+          popover: {
+            title: 'MAP OVERLAYS',
+            description: 'Toggle intelligence layers: OSINT Nodes (RSS/Telegram geo); GDELT Corpus (conflict events); Theater Instability (country risk rings); Air Tracks (military ADS-B); Satellites (CelesTrak TLE/SGP4); Net Blackouts (IODA); GPS Jamming (GPSJam 24h snapshot); Military Bases; Nuclear facilities; Weather (RainViewer radar); Seismic (USGS M4.5+); Natural events (NASA EONET). Keys 1–0 toggle the first ten layers in bar order — Satellites and GPS jamming are not on number keys; use the buttons.',
+            side: 'bottom',
+            align: 'start',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#toolbar-actions',
+          popover: {
+            title: 'TOOLS & KEYBOARD',
+            description: 'BROADCAST opens MP3/HLS radio streams (draggable panel, volume). LIVE FEEDS opens the public camera grid (ALL / NEWS / URBAN). ? HELP opens the full reference and replay tour. SHORTCUTS lists keys: F fullscreen map, R refresh, G global view, B broadcast, S focus feed search, C copy last clicked article, ? shortcuts, 1–0 layer toggles, Alt+1–6 COCOM fly, ESC close/clear. Open SHORTCUTS anytime.',
+            side: 'bottom',
+            align: 'end',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#sidebar-left',
+          popover: {
+            title: 'LEFT SIDEBAR',
+            description: 'THREAT ASSESSMENT: counts for critical, high, medium, and M6+ quakes plus top classifier categories. THEATER INSTABILITY: ranked country risk — click a country to filter the Live OSINT feed to that theater. NET BLACKOUTS: IODA list — click to fly the map to an outage.',
+            side: 'right',
+            align: 'start',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#map-container',
+          popover: {
+            title: 'MAP & NAVIGATION',
+            description: 'Search accepts lat/lon, MGRS, or place name (geocoded). COCOM row: GLOBAL plus regional presets; Alt+1–6 match EUCOM→SOUTHCOM (G resets global view). Cursor readout shows MGRS. Esri imagery base, boundaries/labels overlay, RainViewer when weather layer is on, zoom and metric scale, optional fullscreen (corner control or F). Right-click the map: VIEW SATELLITE IMAGERY opens NASA GIBS with date selection and a preview map.',
+            side: 'left',
+            align: 'start',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#panel-right',
+          popover: {
+            title: 'SEISMIC LOG & LIVE OSINT FEED',
+            description: 'SEISMIC LOG: click a quake to fly to it. LIVE OSINT FEED: severity-ranked, 24-hour window for high-signal items. Filter by severity, category (kinetic, cyber, nuclear, maritime, health), or TG-OSINT. Search narrows the list. NEW tags highlight fresh items; toasts may fire on new critical or bulk ingest. Country filter appears when you pick a theater from the left. Export CSV or JSON for the current filter scope.',
+            side: 'left',
+            align: 'start',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          popover: {
+            title: 'FEED & MAP ACTIONS',
+            description: 'Left-click any OSINT row for: open source, copy snippet, copy URL, fly to coordinates. Press C to copy the last article you clicked. Click Theater Instability or seismic/blackout rows to move the map. Toast messages confirm actions like fullscreen and export.',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          element: '#status-bar',
+          popover: {
+            title: 'SOURCE HEALTH & SYNC',
+            description: 'Dots show whether each pipeline has recent data: OSINT, USGS, EONET, ADS-B, Space, GDELT-CSV, IODA, TG-OSINT. LAST SYNC shows the latest successful full refresh time.',
+            side: 'top',
+            align: 'center',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+        {
+          popover: {
+            title: 'LAYOUT & WHERE TO READ MORE',
+            description: 'Drag the vertical handles to resize side panels. Collapse panels from headers; collapse state is saved in localStorage. Use ? HELP anytime for the full platform reference. You are ready to monitor the situation.',
+            popoverClass: 'spectre-driver-popover',
+          },
+        },
+      ];
+    }
+
+    function spectreRunDriverTour(driver) {
+      if (_spectreDriverRef) {
+        try { _spectreDriverRef.destroy(); } catch (e) {}
+        _spectreDriverRef = null;
+      }
+      spectreCloseHelpReference();
+      closeKbModal();
+      closeCamModal();
+      closeSatModal();
+
+      const isReplay = _spectreTourReplay;
+      _spectreTourReplay = false;
+
+      _spectreDriverRef = driver({
+        showProgress: true,
+        popoverClass: 'spectre-driver-popover',
+        steps: spectreBuildTourSteps(),
+        onDestroyed: () => {
+          if (!isReplay) {
+            try { localStorage.setItem(SPECTRE_ONBOARD_KEY, 'done'); } catch (e) {}
+          }
+          _spectreDriverRef = null;
+        },
+      });
+
+      _spectreDriverRef.drive();
+    }
+
+    window.spectreTryFirstVisitTour = async function() {
+      try {
+        // Kiosk mode (e.g. YouTube stream embed): ?kiosk=1 suppresses the
+        // first-visit guided tour so the dashboard renders unobstructed.
+        if (new URLSearchParams(window.location.search).get('kiosk') === '1') return;
+        if (localStorage.getItem(SPECTRE_ONBOARD_KEY) === 'done') return;
+        if (_spectreDriverRef && _spectreDriverRef.isActive()) return;
+        const { driver } = await import('https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.mjs');
+        _spectreTourReplay = false;
+        spectreRunDriverTour(driver);
+      } catch (e) {
+        console.warn('SPECTRE onboarding:', e);
+      }
+    };
+
+    window.spectreOpenHelpReference = spectreOpenHelpReference;
+    window.spectreCloseHelpReference = spectreCloseHelpReference;
+    window.spectreReplayWelcomeTour = spectreReplayWelcomeTour;
+
+    document.getElementById('help-ref-modal')?.addEventListener('click', function(e) {
+      if (e.target === this) spectreCloseHelpReference();
+    });
+
+    // ── CLOSE KB MODAL ON OVERLAY CLICK ──────────────────────────────────────────
+    document.getElementById('kb-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeKbModal();
+    });
+
+    // ── KICKOFF — all functions defined, safe to start ────────────────────────────
+    document.getElementById('map-search-go')?.addEventListener('click', mapSearchGo);
+    document.getElementById('map-search-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') mapSearchGo();
+    });
+    syncMapHudMetrics();
+    window.addEventListener('resize', () => syncMapHudMetrics());
+    loadAll();
+    initRealtimeUpdates();
+    setInterval(loadAll, 5 * 60 * 1000);
+
+  </script>
+</body>
+
+</html>

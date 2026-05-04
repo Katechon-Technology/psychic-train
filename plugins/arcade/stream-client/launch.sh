@@ -57,14 +57,25 @@ PW_PID=$!
 
 # ---- SPECTRE Flask (port SPECTRE_PORT) ------------------------------------
 # Self-driving OSINT dashboard. Has no Claude agent — ffmpeg captures the
-# Chromium kiosk pointed at it (workspace 3).
-log "starting SPECTRE Flask on ${SPECTRE_HOST}:${SPECTRE_PORT}"
-(
-    cd /app/spectre
-    SPECTRE_HOST="${SPECTRE_HOST}" SPECTRE_PORT="${SPECTRE_PORT}" \
-        exec /app/spectre/.venv/bin/python3 app.py
-) >/tmp/spectre.log 2>&1 &
-SPECTRE_PID=$!
+# Chromium kiosk pointed at it (workspace 3). Source is mounted from the
+# psychic_train_arcade_spectre volume at /app/spectre; venv with deps is baked
+# in the image at /opt/spectre-venv.
+SPECTRE_SRC="${SPECTRE_SRC:-/app/spectre}"
+SPECTRE_VENV="${SPECTRE_VENV:-/opt/spectre-venv}"
+if [ ! -f "${SPECTRE_SRC}/app.py" ]; then
+    log "WARNING: ${SPECTRE_SRC}/app.py missing — SPECTRE workspace will be blank."
+    log "  Seed the psychic_train_arcade_spectre volume:"
+    log "  docker compose --profile init run --rm arcade-spectre-init"
+    SPECTRE_PID=0
+else
+    log "starting SPECTRE Flask on ${SPECTRE_HOST}:${SPECTRE_PORT} (src=${SPECTRE_SRC})"
+    (
+        cd "${SPECTRE_SRC}"
+        SPECTRE_HOST="${SPECTRE_HOST}" SPECTRE_PORT="${SPECTRE_PORT}" \
+            exec "${SPECTRE_VENV}/bin/python3" app.py
+    ) >/tmp/spectre.log 2>&1 &
+    SPECTRE_PID=$!
+fi
 
 # ---- Hub Chromium on workspace 0 ------------------------------------------
 log "launching Hub Chromium → workspace 0"
@@ -277,8 +288,9 @@ log "  control=${CTRL_PID}  pw-fastify=${PW_PID}  spectre=${SPECTRE_PID}  hub=${
 # SPECTRE / watcher dying is recoverable; we just leave the workspace blank.
 on_term() {
     log "received SIGTERM, killing children"
-    kill ${CTRL_PID} ${PW_PID} ${SPECTRE_PID} ${HUB_PID} ${MC_PID} \
-         ${SPECTRE_CHROME_PID} ${WATCHER_PID} 2>/dev/null || true
+    PIDS_TO_KILL="${CTRL_PID} ${PW_PID} ${HUB_PID} ${MC_PID} ${SPECTRE_CHROME_PID} ${WATCHER_PID}"
+    [ "${SPECTRE_PID}" != "0" ] && PIDS_TO_KILL="${PIDS_TO_KILL} ${SPECTRE_PID}"
+    kill ${PIDS_TO_KILL} 2>/dev/null || true
     exit 0
 }
 trap on_term SIGTERM SIGINT
@@ -297,7 +309,7 @@ while true; do
         tail -30 /tmp/mc-client.log 2>/dev/null | sed 's/^/[mc] /'
         MC_DIED=1
     fi
-    if [ -z "${SPECTRE_DIED:-}" ] && ! kill -0 "${SPECTRE_PID}" 2>/dev/null; then
+    if [ "${SPECTRE_PID}" != "0" ] && [ -z "${SPECTRE_DIED:-}" ] && ! kill -0 "${SPECTRE_PID}" 2>/dev/null; then
         log "SPECTRE Flask exited; tail /tmp/spectre.log:"
         tail -30 /tmp/spectre.log 2>/dev/null | sed 's/^/[spectre] /'
         SPECTRE_DIED=1

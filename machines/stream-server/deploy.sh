@@ -12,7 +12,8 @@ docker compose -f /opt/psychic-train/dev/docker-compose.yml --profile build buil
   vtuber-overlay \
   factorio-stream-client \
   playwright-browser-stream-client \
-  minecraft-stream-client
+  minecraft-stream-client \
+  arcade-stream-client
 
 echo "[deploy] restarting compose..."
 docker compose up -d --remove-orphans

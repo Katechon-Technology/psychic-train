@@ -30,6 +30,10 @@ volumes:
     name: psychic_train_minecraft_client
   psychic_train_factorio_client:
     name: psychic_train_factorio_client
+  # SPECTRE source for the arcade plugin. Populated from plugin-data/arcade/spectre/
+  # via arcade-spectre-init; mounted at /app/spectre in arcade-stream-client.
+  psychic_train_arcade_spectre:
+    name: psychic_train_arcade_spectre
 
 services:
   # ---------------- long-lived services ----------------
@@ -315,3 +319,25 @@ services:
       - psychic_train_factorio_client:/dst
     command: >
       sh -c "cp -a /src/. /dst/ 2>/dev/null; echo 'factorio-client volume seeded ('$(du -sh /dst 2>/dev/null | cut -f1)')'"
+
+  arcade-spectre-init:
+    # Copies plugin-data/arcade/spectre/ (host-populated; see
+    # plugin-data/arcade/README.md) into the named volume that arcade-stream-client
+    # mounts read-only at /app/spectre. SPECTRE upstream lives in a sibling
+    # repo (katechon-app) we can't reach from CI, so we keep the source on
+    # the host and let CI build the image with deps only.
+    # Run with: docker compose --profile init run --rm arcade-spectre-init
+    image: alpine:3.20
+    profiles: ["init"]
+    volumes:
+      - ../plugin-data/arcade/spectre:/src:ro
+      - psychic_train_arcade_spectre:/dst
+    command: >
+      sh -c "
+        if [ ! -f /src/app.py ]; then
+          echo 'plugin-data/arcade/spectre/ looks empty. See plugin-data/arcade/README.md to populate it.';
+          exit 1;
+        fi;
+        cp -a /src/. /dst/ &&
+        echo 'arcade-spectre volume seeded ('$$(du -sh /dst 2>/dev/null | cut -f1)')'
+      "
