@@ -172,18 +172,47 @@ MC_PID=$!
 # ---- Open initial Playwright tab on workspace 2 ---------------------------
 # Playwright Chromium is launched lazily by the fastify server on the first
 # /session POST. We trigger that here (after a short delay so the server is
-# up); the agent will then drive the same session normally.
+# up); the agent will then drive the same session normally. The session id
+# returned by /session is a UUID-shaped string — capture it and pass it
+# through to /navigate so the initial page actually loads. Hard-coding "0"
+# (an earlier version of this script) silently 404s and leaves Chromium on
+# about:blank.
+#
+# Also publishes the launched Chromium's parent PID to /tmp/pw-chrome-pid so
+# the window-to-workspace watcher can pin the playwright window by PID — the
+# previous catch-all rule ("any chromium-classed window not labeled
+# ArcadeHub/ArcadeSpectre goes to desktop 2") was leaking the SPECTRE error
+# Chromium onto the Playwright workspace whenever `--class=ArcadeSpectre`
+# wasn't honored by the bundled Chromium build.
+PW_PROFILE_FOR_PIN="${PLAYWRIGHT_BROWSER_PROFILE:-/tmp/pw-profile}"
 log "scheduling initial Playwright session"
 (
     for _ in $(seq 1 60); do
         if curl -fsS "http://127.0.0.1:${PW_PORT}/health" >/dev/null 2>&1 \
            || curl -fsS "http://127.0.0.1:${PW_PORT}/" >/dev/null 2>&1; then
-            curl -fsS -X POST "http://127.0.0.1:${PW_PORT}/session" \
+            sid=$(curl -fsS -X POST "http://127.0.0.1:${PW_PORT}/session" \
                 -H 'content-type: application/json' \
-                -d '{}' >/dev/null 2>&1 || true
-            curl -fsS -X POST "http://127.0.0.1:${PW_PORT}/session/0/navigate" \
-                -H 'content-type: application/json' \
-                -d '{"url":"https://news.ycombinator.com"}' >/dev/null 2>&1 || true
+                -d '{}' 2>/dev/null \
+                | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+            if [ -n "$sid" ]; then
+                curl -fsS -X POST "http://127.0.0.1:${PW_PORT}/session/${sid}/navigate" \
+                    -H 'content-type: application/json' \
+                    -d '{"url":"https://news.ycombinator.com"}' >/dev/null 2>&1 || true
+            fi
+            # Find the playwright Chromium browser process (the parent — its
+            # cmdline contains user-data-dir but NOT --type=, which only the
+            # zygote/renderer/gpu helpers have).
+            for _ in $(seq 1 60); do
+                pid=$(ps -e -o pid=,args= 2>/dev/null \
+                    | awk -v p="$PW_PROFILE_FOR_PIN" '
+                        index($0, "user-data-dir=" p) && !/--type=/ { print $1; exit }
+                    ')
+                if [ -n "$pid" ]; then
+                    echo "$pid" > /tmp/pw-chrome-pid
+                    break
+                fi
+                sleep 1
+            done
             break
         fi
         sleep 1
@@ -253,23 +282,33 @@ log "starting window-assignment watcher"
     }
     # Java's window may not share PID with our subshell — match by Java's
     # "Minecraft*" window class instead.
+    #
+    # The three Chromiums (Hub, Playwright, SPECTRE) all run from the same
+    # playwright-bundled chrome binary on the same Xvfb display, and we've
+    # observed that --class=ArcadeFoo does NOT always survive on this build,
+    # which used to cause the SPECTRE error window ("127.0.0.1:5050 refused"
+    # whenever the spectre named volume wasn't seeded) to leak onto the
+    # Playwright workspace via a catch-all rule. So we pin by PID first
+    # (reliable: each Chromium's parent PID is captured at spawn time) and
+    # only fall back to class-matching for windows that don't have a PID
+    # association in wmctrl -lp.
     while sleep 0.5; do
-        # workspace 0 — Hub Chromium (window class ArcadeHub, set via flag)
+        if [ -r /tmp/pw-chrome-pid ]; then
+            PW_CHROME_PID=$(cat /tmp/pw-chrome-pid 2>/dev/null || echo 0)
+        fi
+
+        # PID-based pinning — authoritative.
+        [ "${HUB_PID:-0}" != "0" ]            && assign_by_pid "$HUB_PID" 0            || true
+        [ "${PW_CHROME_PID:-0}" != "0" ]      && assign_by_pid "$PW_CHROME_PID" 2      || true
+        [ "${SPECTRE_CHROME_PID:-0}" != "0" ] && assign_by_pid "$SPECTRE_CHROME_PID" 3 || true
+
+        # Class-based pinning — covers windows wmctrl -lp doesn't attribute to
+        # the captured PIDs (e.g. transient Chromium splash windows). Java's
+        # main window also has to come in this way because the JVM PID and
+        # our subshell PID don't always match.
         assign_by_class "ArcadeHub" 0 || true
-        # workspace 1 — Java Minecraft client (window class contains
-        # "minecraft" or "Minecraft")
         assign_by_class "[Mm]inecraft" 1 || true
-        # workspace 3 — SPECTRE Chromium (window class ArcadeSpectre, set via
-        # flag). Pinned BEFORE the catch-all so the catch-all doesn't grab it.
         assign_by_class "ArcadeSpectre" 3 || true
-        # workspace 2 — Playwright Chromium. Playwright's default class is
-        # "Chromium" / "chromium" — anything that isn't ArcadeHub or
-        # ArcadeSpectre goes to 2.
-        wmctrl -lx 2>/dev/null | awk '
-            $3 !~ /ArcadeHub/ && $3 !~ /ArcadeSpectre/ && $3 !~ /[Mm]inecraft/ && $3 ~ /[Cc]hrom/ { print $1 }
-        ' | while read -r wid; do
-            wmctrl -i -r "$wid" -t 2 2>/dev/null || true
-        done
     done
 ) &
 WATCHER_PID=$!
